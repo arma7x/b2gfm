@@ -230,10 +230,10 @@ window.addEventListener("load", function() {
             } else if (this.data.pasteType === 'FILE') {
               DS.copyFile(source, name, to.join('/'), isCut)
               .then((res) => {
-                this.$router.showToast(res.target.result);
                 this.data.cutPath = '';
                 this.data.copyPath = '';
                 this.data.pasteType = '';
+                this.$router.showToast(res.target.result);
               })
               .catch((err) => {
                 if (err) {
