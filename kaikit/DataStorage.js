@@ -54,7 +54,6 @@ const DataStorage = (function() {
         if (to.length == 0 || to === '') {
           des = _this.trailingSlash + name;
         }
-        console.log(des);
         var request = SDCARD.addNamed(res, des);
         request.onsuccess = function (result) {
           success(result);
