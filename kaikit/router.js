@@ -10,6 +10,7 @@ const KaiRouter = (function() {
     this.title = '';
     this.routes = {};
     this.stack = [];
+    this.loading;
     this.header;
     this.softwareKey;
     this.toast;
@@ -74,6 +75,7 @@ const KaiRouter = (function() {
   }
 
   KaiRouter.prototype.run = function() {
+    this.mountLoading();
     this.mountHeader();
     this.mountSoftKey();
     this.mountToast();
@@ -340,6 +342,14 @@ const KaiRouter = (function() {
     }
   }
 
+  KaiRouter.prototype.mountLoading = function() {
+    const EL = document.getElementById('__kai_loading__');
+    if (EL) {
+      this.loading = Kai.createLoading(EL, this);
+      this.loading.mount('__kai_loading__');
+    }
+  }
+
   KaiRouter.prototype.mountHeader = function() {
     const EL = document.getElementById('__kai_header__');
     if (EL) {
@@ -374,6 +384,14 @@ const KaiRouter = (function() {
 
   KaiRouter.prototype.showToast = function(text) {
     this.toast.methods.showToast(text);
+  }
+
+  KaiRouter.prototype.showLoading = function(text) {
+    this.loading.methods.showLoading();
+  }
+
+  KaiRouter.prototype.hideLoading = function(text) {
+    this.loading.methods.hideLoading();
   }
 
   KaiRouter.prototype.setSoftKeyText = function(l, c, r) {

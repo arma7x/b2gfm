@@ -1,5 +1,9 @@
 window.addEventListener("load", function() {
 
+  document.addEventListener('visibilitychange', function(ev) {
+    console.log(`Tab state : ${document.visibilityState}`);
+  });
+
   const state = new KaiState({
     'counter': -1,
     'editor': '',
@@ -143,9 +147,11 @@ window.addEventListener("load", function() {
       deleteFileOrFolder: function(current) {
         this.$router.showDialog('Confirm', 'Are sure to delete ' + current.text + ' ?', this.data, 'Yes', () => {
           if (current.type === 'OBJECT') {
-            DS.deleteFolder(JSON.parse(JSON.stringify(this.data.paths)), current.text, function(taskSuccess, taskFail, length) {
+            this.$router.showLoading();
+            DS.deleteFolder(JSON.parse(JSON.stringify(this.data.paths)), current.text, (taskSuccess, taskFail, length) => {
+              this.$router.hideLoading();
               console.log(taskSuccess, taskFail, length);
-            }, function(taskSuccess, taskFail, length) {
+            }, (taskSuccess, taskFail, length) => {
               console.log(taskSuccess, taskFail, length);
             });
           } else if (current.type === 'FILE' && current.text !== '.index') {
@@ -193,8 +199,10 @@ window.addEventListener("load", function() {
             options.push({ "text": "Paste into this folder"});
           }
         }
-        options.push({ "text": "Cut"})
-        options.push({ "text": "Copy"})
+        if (current['type'] === 'FILE') {
+          options.push({ "text": "Cut"})
+          options.push({ "text": "Copy"})
+        }
         options.push({ "text": "Delete"});
         this.$router.showOptionMenu('Option', options, 'Select', (selected) => {
           if (selected.text === 'Copy' || selected.text === 'Cut') {
@@ -226,7 +234,16 @@ window.addEventListener("load", function() {
               to.push(current.text);
             }
             if (this.data.pasteType === 'OBJECT') {
-              // copyFolder
+              this.$router.showLoading();
+              DS.copyFolder(source, name, to.join('/'), (taskSuccess, taskFail, length) => {
+                this.$router.hideLoading();
+                this.data.cutPath = '';
+                this.data.copyPath = '';
+                this.data.pasteType = '';
+                console.log(taskSuccess, taskFail, length);
+              }, (taskSuccess, taskFail, length) => {
+                console.log(taskSuccess, taskFail, length);
+              }, isCut);
             } else if (this.data.pasteType === 'FILE') {
               DS.copyFile(source, name, to.join('/'), isCut)
               .then((res) => {

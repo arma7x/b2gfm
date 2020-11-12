@@ -198,6 +198,31 @@ Kai.createTabNav = function(name, horizontalNavClass, tabs) {
   });
 }
 
+Kai.createLoading = function(EL, $router) {
+  return new Kai({
+    name: '_loading_',
+    disableKeyListener: true,
+    data: {
+      status: false
+    },
+    template: '<div class="slider"><div class="line"></div><div class="break dot1"></div><div class="break dot2"></div><div class="break dot3"></div></div>',
+    mounted: function() {
+      EL.classList.add('kai-loading');
+      this.methods.hideLoading();
+    },
+    methods: {
+      showLoading: function() {
+        EL.classList.remove('sr-only');
+        this.data.status = true;
+      },
+      hideLoading: function() {
+        EL.classList.add('sr-only');
+        this.data.status = false;
+      }
+    }
+  });
+}
+
 Kai.createHeader = function(EL, $router) {
   return new Kai({
     name: '_header_',

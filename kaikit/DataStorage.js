@@ -160,10 +160,13 @@ const DataStorage = (function() {
     getFiles(dir);
     files.forEach((filePath) => {
       var pathName = filePath.replace(origin.join('/'), '');
+      if (pathName[0] === '/') {
+        pathName = pathName.replace('/', '');
+      }
       this.getFile(this.trailingSlash + filePath, function(res) {
-        var des = _this.trailingSlash + to + "/" + name;
+        var des = _this.trailingSlash + to + "/" + pathName;
         if (to.length == 0 || to === '') {
-          des = _this.trailingSlash + name;
+          des = _this.trailingSlash + pathName;
         }
         var request = SDCARD.addNamed(res, des);
         request.onsuccess = function (result) {
