@@ -1,5 +1,7 @@
 window.addEventListener("load", function() {
 
+  localforage.setDriver(localforage.LOCALSTORAGE);
+
   document.addEventListener('visibilitychange', function(ev) {
     console.log(`Tab state : ${document.visibilityState}`);
   });
@@ -28,6 +30,7 @@ window.addEventListener("load", function() {
       verticalNavClass: '.newFolderPageNav',
       templateUrl: document.location.origin + '/templates/new_folder.html',
       mounted: function() {
+        this.$router.setHeaderTitle('New Folder');
       },
       unmounted: function() {},
       methods: {
@@ -83,6 +86,130 @@ window.addEventListener("load", function() {
     });
   }
 
+  const kloudlessPage = function($router) {
+    // localforage.clear()
+    localforage.getItem('KLOUDLESS_API_KEY')
+    .then((value) => {
+      $router.push(new Kai({
+        name: '_kloudlessPage_',
+        data: {
+          title: '_kloudlessPage_',
+          KLOUDLESS_API_KEY: value
+        },
+        verticalNavClass: '.kloudlessPageNav',
+        templateUrl: document.location.origin + '/templates/kloudless.html',
+        mounted: function() {
+          this.$router.setHeaderTitle('Kloudless');
+        },
+        unmounted: function() {},
+        methods: {
+          selected: function(val) {
+            if (typeof val === 'string') {
+              if (val === 'SETUP') {
+                this.methods.setupApiKey();
+              } else if (val === 'CHANGE_DEFAULT') {
+                this.$router.showLoading();
+                Kloudless.sdk.axios.get('https://api.kloudless.com/v1/accounts', {
+                  headers: { 'Authorization': 'APIKey ' + this.data.KLOUDLESS_API_KEY }
+                })
+                .then((res) => {
+                  const opts = res.data.objects;
+                  for (var t in opts) {
+                    opts[t]['text'] = opts[t]['service_name'] + ' - ' + opts[t]['id'];
+                  }
+                  localforage.getItem('KLOUDLESS_DEFAULT_ACCOUNT')
+                  .then((KLOUDLESS_DEFAULT_ACCOUNT) => {
+                    const idx = opts.findIndex((opt) => {
+                      return opt.id === KLOUDLESS_DEFAULT_ACCOUNT;
+                    });
+                    this.$router.showSingleSelector('Select', opts, 'Select', (selected) => {
+                      localforage.setItem('KLOUDLESS_DEFAULT_ACCOUNT', selected.id)
+                      .then(() => {
+                        this.$router.showToast(selected['service_name'] + ' - ' + selected['id']);
+                      }).catch((err) => {
+                        console.log(err);
+                      });
+                    }, 'Cancel', null, idx);
+                  })
+                  .catch((err) => {
+                    console.log(err);
+                  });
+                })
+                .catch((err) => {
+                  console.log(err);
+                })
+                .finally((err) => {
+                  this.$router.hideLoading();
+                });
+              }
+            }
+          },
+          setupApiKey: function() {
+            _this = this;
+            DS.getFile('kloudless.txt', (found) => {
+              if (found.type === 'text/plain') {
+                var reader = new FileReader();
+                reader.onload = (event) => {
+                  if (event.target.result.length > 0) {
+                    console.log(event.target.result);
+                    localforage.setItem('KLOUDLESS_API_KEY', event.target.result)
+                    .then(() => {
+                      return localforage.getItem('KLOUDLESS_API_KEY');
+                    }).then((value) => {
+                      _this.setData({ KLOUDLESS_API_KEY: value });
+                      console.log(value);
+                    }).catch((err) => {
+                      console.log(err);
+                    });
+                  } else {
+                    console.log('Empty file');
+                  }
+                };
+                reader.readAsText(found);
+              } else {
+                console.log('Invalid MIME');
+              }
+            }, (err) => {
+              this.$router.showToast(err.name);
+            });
+          }
+        },
+        softKeyInputFocusText: {},
+        softKeyInputFocusListener: {
+          right: function() {}
+        },
+        softKeyText: { left: '', center: 'SELECT', right: '' },
+        softKeyListener: {
+          left: function() {},
+          center: function() {
+            const listNav = document.querySelectorAll(this.verticalNavClass);
+            if (this.verticalNavIndex > -1) {
+              listNav[this.verticalNavIndex].click();
+            }
+          },
+          right: function() {}
+        },
+        dPadNavListener: {
+          arrowUp: function() {
+            this.navigateListNav(-1);
+          },
+          arrowRight: function() {
+            this.navigateTabNav(-1);
+          },
+          arrowDown: function() {
+            this.navigateListNav(1);
+          },
+          arrowLeft: function() {
+            this.navigateTabNav(1);
+          },
+        }
+      }));
+    })
+    .catch((err) => {
+      console.log(err);
+    });
+  }
+
   const mainPage = new Kai({
     name: '_main_',
     data: {
@@ -97,7 +224,6 @@ window.addEventListener("load", function() {
       pasteType: '',
       menu: [
         { "text": "Create new folder" },
-        { "text": "Re-scan storage" },
         { "text": "Kloudless" }
       ]
     },
@@ -105,6 +231,7 @@ window.addEventListener("load", function() {
     components: [],
     templateUrl: document.location.origin + '/templates/main.html',
     mounted: function() {
+      this.$router.setHeaderTitle('File Manager');
       this.$state.addGlobalListener(this.methods.listenState);
       this.methods.navigate();
     },
@@ -125,10 +252,12 @@ window.addEventListener("load", function() {
         this.data.currentFolderContents = []
         for (var x in documentTree) {
           var type = 'FILE'
+          var icon = '&#128240'
           if (typeof documentTree[x] === 'object') {
             type = 'OBJECT'
+            icon = '&#128193'
           }
-          this.data.currentFolderContents.push({text: x, type: type})
+          this.data.currentFolderContents.push({text: x, type: type, icon})
         }
         if (this.data.currentFocus[this.data.paths.length] >= this.data.currentFolderContents.length) {
           this.data.currentFocus[this.data.paths.length] = this.data.currentFolderContents.length - 1;
@@ -175,12 +304,14 @@ window.addEventListener("load", function() {
         return true;
       }
     },
-    softKeyText: { left: 'Menu', center: 'SELECT', right: 'Option' },
+    softKeyText: { left: 'Menu', center: 'OPEN', right: 'Option' },
     softKeyListener: {
       left: function() {
         this.$router.showOptionMenu('Menu', this.data.menu, 'Select', (selected) => {
           if (selected.text === 'Create new folder') {
             this.$router.push(newFolderPage(JSON.parse(JSON.stringify(this.data.paths))));
+          } else if (selected.text === 'Kloudless') {
+            kloudlessPage(this.$router);
           }
         }, 0);
       },

@@ -413,8 +413,8 @@ const Kai = (function() {
     var extractFuncRegex = /\b[^()]+\((.*)\)$/;
     const target = evt.target.attributes.getNamedItem('@click');
     if (evt.target.attributes.length > 0 && target) {
-      if (target.nodeValue !== '') {
-        const params = target.nodeValue.split(';');
+      if (target.value !== '') { // nodeValue
+        const params = target.value.split(';'); // nodeValue
         params.forEach(function(v) {
           var fName = v.substring(0, v.indexOf('('));
           var fParams = v.substring((v.indexOf('(') +1), v.indexOf(')'));

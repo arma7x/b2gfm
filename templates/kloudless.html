@@ -1,0 +1,11 @@
+<div class="kui-flex-wrap">
+  <ul class="kui-list kai-container">
+    {{#KLOUDLESS_API_KEY}}
+    <li class="kloudlessPageNav" @click='selected("CHANGE_DEFAULT")'>Default Cloud Storage</li>
+    <li class="kloudlessPageNav" @click='selected("SETUP")'>Change API Key</li>
+    {{/KLOUDLESS_API_KEY}}
+    {{^KLOUDLESS_API_KEY}}
+    <li class="kloudlessPageNav" @click='selected("SETUP")'>Setup API Key</li>
+    {{/KLOUDLESS_API_KEY}}
+  </ul>
+</div>
