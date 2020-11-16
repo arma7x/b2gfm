@@ -107,7 +107,7 @@ window.addEventListener("load", function() {
             if (typeof val === 'string') {
               if (val === 'SETUP') {
                 this.methods.setupApiKey();
-              } else if (val === 'CHANGE_DEFAULT') {
+              } else if (val === 'SELECT_DEFAULT_STORAGE') {
                 this.$router.showLoading();
                 Kloudless.sdk.axios.get('https://api.kloudless.com/v1/accounts', {
                   headers: { 'Authorization': 'APIKey ' + this.data.KLOUDLESS_API_KEY }
@@ -117,14 +117,15 @@ window.addEventListener("load", function() {
                   for (var t in opts) {
                     opts[t]['text'] = opts[t]['service_name'] + ' - ' + opts[t]['id'];
                   }
-                  localforage.getItem('KLOUDLESS_DEFAULT_ACCOUNT')
-                  .then((KLOUDLESS_DEFAULT_ACCOUNT) => {
+                  localforage.getItem('KLOUDLESS_DEFAULT_ACCOUNT_ID')
+                  .then((KLOUDLESS_DEFAULT_ACCOUNT_ID) => {
                     const idx = opts.findIndex((opt) => {
-                      return opt.id === KLOUDLESS_DEFAULT_ACCOUNT;
+                      return opt.id === KLOUDLESS_DEFAULT_ACCOUNT_ID;
                     });
                     this.$router.showSingleSelector('Select', opts, 'Select', (selected) => {
-                      localforage.setItem('KLOUDLESS_DEFAULT_ACCOUNT', selected.id)
+                      localforage.setItem('KLOUDLESS_DEFAULT_ACCOUNT_ID', selected.id)
                       .then(() => {
+                        localforage.setItem('KLOUDLESS_DEFAULT_ACCOUNT_NAME', selected['service_name'] + ' - ' + selected['id'])
                         this.$router.showToast(selected['service_name'] + ' - ' + selected['id']);
                       }).catch((err) => {
                         console.log(err);
@@ -156,6 +157,8 @@ window.addEventListener("load", function() {
                     .then(() => {
                       return localforage.getItem('KLOUDLESS_API_KEY');
                     }).then((value) => {
+                      localforage.removeItem('KLOUDLESS_DEFAULT_ACCOUNT_ID');
+                      localforage.removeItem('KLOUDLESS_DEFAULT_ACCOUNT_NAME');
                       _this.setData({ KLOUDLESS_API_KEY: value });
                       console.log(value);
                     }).catch((err) => {
