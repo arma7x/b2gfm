@@ -225,7 +225,10 @@ window.addEventListener("load", function() {
           $router.push(new Kai({
             name: '_cloudStoragePage_',
             data: {
-              title: '_cloudStoragePage_'
+              title: '_cloudStoragePage_',
+              paths: [],
+              currentFolderContents: [],
+              currentFocus: [0]
             },
             verticalNavClass: '.kloudlessPageNav',
             templateUrl: document.location.origin + '/templates/cloudstorage.html',
@@ -279,8 +282,6 @@ window.addEventListener("load", function() {
     name: '_main_',
     data: {
       title: '_main_',
-      counter: -1,
-      selected: 'None',
       paths: [],
       currentFolderContents: [],
       currentFocus: [0],
