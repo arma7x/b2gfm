@@ -87,7 +87,7 @@ window.addEventListener("load", function() {
   }
 
   const kloudlessPage = function($router) {
-    // localforage.clear()
+    // localforage.clear();
     localforage.getItem('KLOUDLESS_API_KEY')
     .then((value) => {
       $router.push(new Kai({
@@ -142,6 +142,8 @@ window.addEventListener("load", function() {
                 .finally((err) => {
                   this.$router.hideLoading();
                 });
+              } else if (val === 'OPEN_DEFAULT_STORAGE') {
+                cloudStoragePage(this.$router);
               }
             }
           },
@@ -152,7 +154,6 @@ window.addEventListener("load", function() {
                 var reader = new FileReader();
                 reader.onload = (event) => {
                   if (event.target.result.length > 0) {
-                    console.log(event.target.result);
                     localforage.setItem('KLOUDLESS_API_KEY', event.target.result)
                     .then(() => {
                       return localforage.getItem('KLOUDLESS_API_KEY');
@@ -160,7 +161,6 @@ window.addEventListener("load", function() {
                       localforage.removeItem('KLOUDLESS_DEFAULT_ACCOUNT_ID');
                       localforage.removeItem('KLOUDLESS_DEFAULT_ACCOUNT_NAME');
                       _this.setData({ KLOUDLESS_API_KEY: value });
-                      console.log(value);
                     }).catch((err) => {
                       console.log(err);
                     });
@@ -207,6 +207,68 @@ window.addEventListener("load", function() {
           },
         }
       }));
+    })
+    .catch((err) => {
+      console.log(err);
+    });
+  }
+
+  const cloudStoragePage = function($router) {
+    localforage.getItem('KLOUDLESS_DEFAULT_ACCOUNT_ID')
+    .then((value) => {
+      if (value == null) {
+        $router.showToast('Please select default cloud storage');
+      } else {
+        localforage.getItem('KLOUDLESS_DEFAULT_ACCOUNT_NAME')
+        .then((KLOUDLESS_DEFAULT_ACCOUNT_NAME) => {
+          console.log(KLOUDLESS_DEFAULT_ACCOUNT_NAME);
+          $router.push(new Kai({
+            name: '_cloudStoragePage_',
+            data: {
+              title: '_cloudStoragePage_'
+            },
+            verticalNavClass: '.kloudlessPageNav',
+            templateUrl: document.location.origin + '/templates/cloudstorage.html',
+            mounted: function() {
+              this.$router.setHeaderTitle(KLOUDLESS_DEFAULT_ACCOUNT_NAME);
+            },
+            unmounted: function() {},
+            methods: {},
+            softKeyInputFocusText: {},
+            softKeyInputFocusListener: {
+              right: function() {}
+            },
+            softKeyText: { left: '', center: '', right: '' },
+            softKeyListener: {
+              left: function() {},
+              center: function() {
+                const listNav = document.querySelectorAll(this.verticalNavClass);
+                if (this.verticalNavIndex > -1) {
+                  listNav[this.verticalNavIndex].click();
+                }
+              },
+              right: function() {}
+            },
+            dPadNavListener: {
+              arrowUp: function() {
+                this.navigateListNav(-1);
+              },
+              arrowRight: function() {
+                this.navigateTabNav(-1);
+              },
+              arrowDown: function() {
+                this.navigateListNav(1);
+              },
+              arrowLeft: function() {
+                this.navigateTabNav(1);
+              },
+            }
+          }));
+        })
+        .catch((err) => {
+          console.log(err);
+        });
+      }
     })
     .catch((err) => {
       console.log(err);
