@@ -517,6 +517,9 @@ h1, h2, h3, h4, h5, ul, p {
     display: flex;
     align-items: center;
     padding: 0 10px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .kui-list li .kui-list-img {
@@ -543,6 +546,9 @@ h1, h2, h3, h4, h5, ul, p {
     background-color: #873eff;
     outline: 0;
     color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .kui-list .focus button.kui-btn {
@@ -593,18 +599,27 @@ h1, h2, h3, h4, h5, ul, p {
     line-height: 50px;
     padding: 0 10px;
     background-color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .kui-options li:focus {
     outline: 0;
     color: #fff;
     background-color: #873eff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .kui-options li.focus {
     outline: 0;
     color: #fff;
     background-color: #873eff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .kui-options li.focus .radio input:checked + span, .kui-options li.focus .checkbox input:checked + span  {

@@ -89,12 +89,12 @@ window.addEventListener("load", function() {
   const kloudlessPage = function($router) {
     // localforage.clear();
     localforage.getItem('KLOUDLESS_API_KEY')
-    .then((value) => {
+    .then((KLOUDLESS_API_KEY) => {
       $router.push(new Kai({
         name: '_kloudlessPage_',
         data: {
           title: '_kloudlessPage_',
-          KLOUDLESS_API_KEY: value
+          KLOUDLESS_API_KEY: KLOUDLESS_API_KEY
         },
         verticalNavClass: '.kloudlessPageNav',
         templateUrl: document.location.origin + '/templates/kloudless.html',
@@ -143,7 +143,7 @@ window.addEventListener("load", function() {
                   this.$router.hideLoading();
                 });
               } else if (val === 'OPEN_DEFAULT_STORAGE') {
-                cloudStoragePage(this.$router);
+                cloudStoragePage(this.$router, KLOUDLESS_API_KEY);
               }
             }
           },
@@ -161,6 +161,7 @@ window.addEventListener("load", function() {
                       localforage.removeItem('KLOUDLESS_DEFAULT_ACCOUNT_ID');
                       localforage.removeItem('KLOUDLESS_DEFAULT_ACCOUNT_NAME');
                       _this.setData({ KLOUDLESS_API_KEY: value });
+                      this.$router.showToast('Success');
                     }).catch((err) => {
                       console.log(err);
                     });
@@ -213,20 +214,26 @@ window.addEventListener("load", function() {
     });
   }
 
-  const cloudStoragePage = function($router) {
+  const cloudStoragePage = function($router, KLOUDLESS_API_KEY) {
     localforage.getItem('KLOUDLESS_DEFAULT_ACCOUNT_ID')
-    .then((value) => {
-      if (value == null) {
+    .then((KLOUDLESS_DEFAULT_ACCOUNT_ID) => {
+      if (KLOUDLESS_DEFAULT_ACCOUNT_ID == null) {
         $router.showToast('Please select default cloud storage');
       } else {
         localforage.getItem('KLOUDLESS_DEFAULT_ACCOUNT_NAME')
         .then((KLOUDLESS_DEFAULT_ACCOUNT_NAME) => {
-          console.log(KLOUDLESS_DEFAULT_ACCOUNT_NAME);
+          var ACCOUNT = new Kloudless.sdk.Account({
+            token: KLOUDLESS_API_KEY,
+            tokenType: 'APIKey',
+            accountId: KLOUDLESS_DEFAULT_ACCOUNT_ID
+          });
+          console.log(ACCOUNT);
           $router.push(new Kai({
             name: '_cloudStoragePage_',
             data: {
               title: '_cloudStoragePage_',
               paths: [],
+              parent: null,
               currentFolderContents: [],
               currentFocus: [0]
             },
@@ -234,14 +241,68 @@ window.addEventListener("load", function() {
             templateUrl: document.location.origin + '/templates/cloudstorage.html',
             mounted: function() {
               this.$router.setHeaderTitle(KLOUDLESS_DEFAULT_ACCOUNT_NAME);
+              this.methods.navigate('root'); // folder_MTI2MTkzODc4MzU0
             },
             unmounted: function() {},
-            methods: {},
+            methods: {
+              navigate: function(folder_id) {
+                this.$router.showLoading();
+                ACCOUNT.get({
+                  url: 'storage/folders/' + folder_id
+                }).then((response) => {
+                  if (response.data.parent == null) {
+                    this.data.parent = null;
+                  } else {
+                    this.data.parent = response.data.parent.id
+                    this.data.paths.push(response.data.parent.id);
+                  }
+                  return ACCOUNT.get({ url: 'storage/folders/' + folder_id + '/contents' });
+                }).then((response) => {
+                  console.log(this.data.paths);
+                  this.data.currentFolderContents = []
+                  for (var x in response.data.objects) {
+                    response.data.objects[x]['text'] = response.data.objects[x]['name']
+                    response.data.objects[x]['icon'] = '&#128240'
+                    if (response.data.objects[x].type === 'folder') {
+                      response.data.objects[x]['icon'] = '&#128193'
+                    }
+                    this.data.currentFolderContents.push(response.data.objects[x])
+                  }
+                  if (this.data.currentFocus[this.data.paths.length] >= this.data.currentFolderContents.length) {
+                    this.data.currentFocus[this.data.paths.length] = this.data.currentFolderContents.length - 1;
+                    this.verticalNavIndex = this.data.currentFocus[this.data.paths.length];
+                  }
+                  this.render()
+                  console.log(this.data.currentFolderContents);
+                }).catch((err) => {
+                  console.log(err);
+                }).finally(() => {
+                  this.$router.hideLoading();
+                });
+              },
+              selected: function(val) {
+                if (val.type === 'folder') {
+                  this.data.currentFocus.push(0);
+                  this.verticalNavIndex = this.data.currentFocus[this.data.paths.length];
+                  this.methods.navigate(val.id);
+                }
+              },
+            },
             softKeyInputFocusText: {},
             softKeyInputFocusListener: {
               right: function() {}
             },
-            softKeyText: { left: '', center: '', right: '' },
+            backKeyListener: function() {
+              if (this.data.paths.length > 0) {
+                var parent = this.data.paths[this.data.paths.length - 1]
+                this.data.paths.pop();
+                this.verticalNavIndex = this.data.currentFocus[this.data.paths.length];
+                this.data.currentFocus.pop();
+                this.methods.navigate(parent);
+                return true;
+              }
+            },
+            softKeyText: { left: '', center: 'OPEN', right: '' },
             softKeyListener: {
               left: function() {},
               center: function() {
@@ -255,12 +316,14 @@ window.addEventListener("load", function() {
             dPadNavListener: {
               arrowUp: function() {
                 this.navigateListNav(-1);
+                this.data.currentFocus[this.data.paths.length] = this.verticalNavIndex;
               },
               arrowRight: function() {
                 this.navigateTabNav(-1);
               },
               arrowDown: function() {
                 this.navigateListNav(1);
+                this.data.currentFocus[this.data.paths.length] = this.verticalNavIndex;
               },
               arrowLeft: function() {
                 this.navigateTabNav(1);

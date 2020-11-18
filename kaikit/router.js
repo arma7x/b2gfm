@@ -493,6 +493,13 @@ const KaiRouter = (function() {
   }
 
   KaiRouter.prototype.handleKeydown = function(e, _router) {
+    if (this.loading != null) {
+      if (this.loading.data.status === true) {
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+      }
+    }
     switch(e.key) {
       case 'Backspace':
       case 'EndCall':
