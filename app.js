@@ -143,7 +143,7 @@ window.addEventListener("load", function() {
                   this.$router.hideLoading();
                 });
               } else if (val === 'OPEN_DEFAULT_STORAGE') {
-                cloudStoragePage(this.$router, KLOUDLESS_API_KEY);
+                cloudStoragePage(this.$router, this.data.KLOUDLESS_API_KEY);
               }
             }
           },
