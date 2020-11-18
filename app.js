@@ -241,23 +241,25 @@ window.addEventListener("load", function() {
             templateUrl: document.location.origin + '/templates/cloudstorage.html',
             mounted: function() {
               this.$router.setHeaderTitle(KLOUDLESS_DEFAULT_ACCOUNT_NAME);
-              this.methods.navigate('root'); // folder_MTI2MTkzODc4MzU0
+              this.methods.navigate('root', () => {
+                this.verticalNavIndex = this.data.currentFocus[this.data.paths.length];
+              });
             },
             unmounted: function() {},
             methods: {
-              navigate: function(folder_id) {
+              navigate: function(folder_id, cb) {
                 this.$router.showLoading();
                 ACCOUNT.get({
                   url: 'storage/folders/' + folder_id
                 }).then((response) => {
                   if (response.data.parent == null) {
-                    this.data.parent = null;
+                    this.data.parent = 'root';
                   } else {
                     this.data.parent = response.data.parent.id
-                    this.data.paths.push(response.data.parent.id);
                   }
                   return ACCOUNT.get({ url: 'storage/folders/' + folder_id + '/contents' });
                 }).then((response) => {
+                  cb();
                   console.log(this.data.paths);
                   this.data.currentFolderContents = []
                   for (var x in response.data.objects) {
@@ -273,7 +275,6 @@ window.addEventListener("load", function() {
                     this.verticalNavIndex = this.data.currentFocus[this.data.paths.length];
                   }
                   this.render()
-                  console.log(this.data.currentFolderContents);
                 }).catch((err) => {
                   console.log(err);
                 }).finally(() => {
@@ -282,9 +283,11 @@ window.addEventListener("load", function() {
               },
               selected: function(val) {
                 if (val.type === 'folder') {
-                  this.data.currentFocus.push(0);
-                  this.verticalNavIndex = this.data.currentFocus[this.data.paths.length];
-                  this.methods.navigate(val.id);
+                  this.methods.navigate(val.id, () => {
+                    this.data.paths.push(this.data.parent)
+                    this.data.currentFocus.push(0);
+                    this.verticalNavIndex = this.data.currentFocus[this.data.paths.length];
+                  });
                 }
               },
             },
@@ -295,10 +298,11 @@ window.addEventListener("load", function() {
             backKeyListener: function() {
               if (this.data.paths.length > 0) {
                 var parent = this.data.paths[this.data.paths.length - 1]
-                this.data.paths.pop();
-                this.verticalNavIndex = this.data.currentFocus[this.data.paths.length];
-                this.data.currentFocus.pop();
-                this.methods.navigate(parent);
+                this.methods.navigate(parent, () => {
+                  this.data.paths.pop();
+                  this.verticalNavIndex = this.data.currentFocus[this.data.paths.length];
+                  this.data.currentFocus.pop();
+                });
                 return true;
               }
             },
