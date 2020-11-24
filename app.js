@@ -227,13 +227,13 @@ window.addEventListener("load", function() {
             tokenType: 'APIKey',
             accountId: KLOUDLESS_DEFAULT_ACCOUNT_ID
           });
-          console.log(ACCOUNT);
           $router.push(new Kai({
             name: '_cloudStoragePage_',
             data: {
               title: '_cloudStoragePage_',
-              paths: [],
               parent: null,
+              previousPaths: [],
+              currentPaths: [],
               currentFolderContents: [],
               currentFocus: [0]
             },
@@ -242,7 +242,7 @@ window.addEventListener("load", function() {
             mounted: function() {
               this.$router.setHeaderTitle(KLOUDLESS_DEFAULT_ACCOUNT_NAME);
               this.methods.navigate('root', () => {
-                this.verticalNavIndex = this.data.currentFocus[this.data.paths.length];
+                this.verticalNavIndex = this.data.currentFocus[this.data.previousPaths.length];
               });
             },
             unmounted: function() {},
@@ -257,10 +257,9 @@ window.addEventListener("load", function() {
                   } else {
                     this.data.parent = response.data.parent.id
                   }
+                  cb(response.data);
                   return ACCOUNT.get({ url: 'storage/folders/' + folder_id + '/contents' });
                 }).then((response) => {
-                  cb();
-                  console.log(this.data.paths);
                   this.data.currentFolderContents = []
                   for (var x in response.data.objects) {
                     response.data.objects[x]['text'] = response.data.objects[x]['name']
@@ -270,9 +269,9 @@ window.addEventListener("load", function() {
                     }
                     this.data.currentFolderContents.push(response.data.objects[x])
                   }
-                  if (this.data.currentFocus[this.data.paths.length] >= this.data.currentFolderContents.length) {
-                    this.data.currentFocus[this.data.paths.length] = this.data.currentFolderContents.length - 1;
-                    this.verticalNavIndex = this.data.currentFocus[this.data.paths.length];
+                  if (this.data.currentFocus[this.data.previousPaths.length] >= this.data.currentFolderContents.length) {
+                    this.data.currentFocus[this.data.previousPaths.length] = this.data.currentFolderContents.length - 1;
+                    this.verticalNavIndex = this.data.currentFocus[this.data.previousPaths.length];
                   }
                   this.render()
                 }).catch((err) => {
@@ -283,10 +282,11 @@ window.addEventListener("load", function() {
               },
               selected: function(val) {
                 if (val.type === 'folder') {
-                  this.methods.navigate(val.id, () => {
-                    this.data.paths.push(this.data.parent)
+                  this.methods.navigate(val.id, (data) => {
+                    this.data.currentPaths.push(data.name);
+                    this.data.previousPaths.push(this.data.parent)
                     this.data.currentFocus.push(0);
-                    this.verticalNavIndex = this.data.currentFocus[this.data.paths.length];
+                    this.verticalNavIndex = this.data.currentFocus[this.data.previousPaths.length];
                   });
                 }
               },
@@ -296,38 +296,43 @@ window.addEventListener("load", function() {
               right: function() {}
             },
             backKeyListener: function() {
-              if (this.data.paths.length > 0) {
-                var parent = this.data.paths[this.data.paths.length - 1]
+              if (this.data.previousPaths.length > 0) {
+                var parent = this.data.previousPaths[this.data.previousPaths.length - 1]
                 this.methods.navigate(parent, () => {
-                  this.data.paths.pop();
-                  this.verticalNavIndex = this.data.currentFocus[this.data.paths.length];
+                  this.data.currentPaths.pop();
+                  this.data.previousPaths.pop();
+                  this.verticalNavIndex = this.data.currentFocus[this.data.previousPaths.length];
                   this.data.currentFocus.pop();
                 });
                 return true;
               }
             },
-            softKeyText: { left: '', center: 'OPEN', right: '' },
+            softKeyText: { left: 'Exit', center: 'OPEN', right: '' },
             softKeyListener: {
-              left: function() {},
+              left: function() {
+                this.$router.pop();
+              },
               center: function() {
                 const listNav = document.querySelectorAll(this.verticalNavClass);
                 if (this.verticalNavIndex > -1) {
                   listNav[this.verticalNavIndex].click();
                 }
               },
-              right: function() {}
+              right: function() {
+                //var current = this.data.currentFolderContents[this.data.currentFocus[this.data.paths.length]];
+              }
             },
             dPadNavListener: {
               arrowUp: function() {
                 this.navigateListNav(-1);
-                this.data.currentFocus[this.data.paths.length] = this.verticalNavIndex;
+                this.data.currentFocus[this.data.previousPaths.length] = this.verticalNavIndex;
               },
               arrowRight: function() {
                 this.navigateTabNav(-1);
               },
               arrowDown: function() {
                 this.navigateListNav(1);
-                this.data.currentFocus[this.data.paths.length] = this.verticalNavIndex;
+                this.data.currentFocus[this.data.previousPaths.length] = this.verticalNavIndex;
               },
               arrowLeft: function() {
                 this.navigateTabNav(1);

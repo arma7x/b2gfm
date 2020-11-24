@@ -169,7 +169,6 @@ const KaiRouter = (function() {
     if ((paths.length > 0 && this.stack.length) > 0 && (paths.length === this.stack.length)) {
       var r = false;
       if ((this.stack.length - 1) > 0) {
-        this.backKey();
         paths.pop();
         this.stack.pop();
         const DOM = document.getElementById('__kai_router__');
