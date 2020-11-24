@@ -273,6 +273,14 @@ window.addEventListener("load", function() {
                     this.data.currentFocus[this.data.previousPaths.length] = this.data.currentFolderContents.length - 1;
                     this.verticalNavIndex = this.data.currentFocus[this.data.previousPaths.length];
                   }
+                  var current = this.data.currentFolderContents[this.data.currentFocus[this.data.previousPaths.length]];
+                  if (current == null) {
+                    this.$router.setSoftKeyText('Exit', '', '');
+                  } else if (current.type === 'file') {
+                    this.$router.setSoftKeyText('Exit', '', 'Option');
+                  } else if (current.type === 'folder') {
+                    this.$router.setSoftKeyText('Exit', 'OPEN', '');
+                  }
                   this.render()
                 }).catch((err) => {
                   console.log(err);
@@ -307,7 +315,7 @@ window.addEventListener("load", function() {
                 return true;
               }
             },
-            softKeyText: { left: 'Exit', center: 'OPEN', right: '' },
+            softKeyText: { left: 'Exit', center: 'OPEN', right: 'Option' },
             softKeyListener: {
               left: function() {
                 this.$router.pop();
@@ -319,13 +327,22 @@ window.addEventListener("load", function() {
                 }
               },
               right: function() {
-                //var current = this.data.currentFolderContents[this.data.currentFocus[this.data.paths.length]];
+                var current = this.data.currentFolderContents[this.data.currentFocus[this.data.previousPaths.length]];
+                console.log(current);
               }
             },
             dPadNavListener: {
               arrowUp: function() {
                 this.navigateListNav(-1);
                 this.data.currentFocus[this.data.previousPaths.length] = this.verticalNavIndex;
+                var current = this.data.currentFolderContents[this.data.currentFocus[this.data.previousPaths.length]];
+                if (current == null) {
+                  this.$router.setSoftKeyText('Exit', '', '');
+                } else if (current.type === 'file') {
+                  this.$router.setSoftKeyText('Exit', '', 'Option');
+                } else if (current.type === 'folder') {
+                  this.$router.setSoftKeyText('Exit', 'OPEN', '');
+                }
               },
               arrowRight: function() {
                 this.navigateTabNav(-1);
@@ -333,6 +350,14 @@ window.addEventListener("load", function() {
               arrowDown: function() {
                 this.navigateListNav(1);
                 this.data.currentFocus[this.data.previousPaths.length] = this.verticalNavIndex;
+                var current = this.data.currentFolderContents[this.data.currentFocus[this.data.previousPaths.length]];
+                if (current == null) {
+                  this.$router.setSoftKeyText('Exit', '', '');
+                } else if (current.type === 'file') {
+                  this.$router.setSoftKeyText('Exit', '', 'Option');
+                } else if (current.type === 'folder') {
+                  this.$router.setSoftKeyText('Exit', 'OPEN', '');
+                }
               },
               arrowLeft: function() {
                 this.navigateTabNav(1);
