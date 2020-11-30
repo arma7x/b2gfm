@@ -1,9 +1,11 @@
 window.addEventListener("load", function() {
 
+  const POWER = window.navigator.mozPower;
+
   localforage.setDriver(localforage.LOCALSTORAGE);
 
   document.addEventListener('visibilitychange', function(ev) {
-    console.log(`Tab state : ${document.visibilityState}`);
+    console.log(`Tab state : ${document.visibilityState}`, `CPU cpuSleepAllowed : ${POWER.cpuSleepAllowed}`);
   });
 
   const state = new KaiState({
@@ -126,6 +128,15 @@ window.addEventListener("load", function() {
                       localforage.setItem('KLOUDLESS_DEFAULT_ACCOUNT_ID', selected.id)
                       .then(() => {
                         localforage.setItem('KLOUDLESS_DEFAULT_ACCOUNT_NAME', selected['service_name'] + ' - ' + selected['id'])
+                        localforage.getItem('KLOUDLESS_ACCOUNT_' + selected['id'])
+                        .then((KLOUDLESS_DEFAULT_ACCOUNT) => {
+                          if (KLOUDLESS_DEFAULT_ACCOUNT == null) {
+                            localforage.setItem('KLOUDLESS_ACCOUNT_' + selected['id'], {});
+                          }
+                        })
+                        .catch((err) => {
+                          console.log(err);
+                        });
                         this.$router.showToast(selected['service_name'] + ' - ' + selected['id']);
                       }).catch((err) => {
                         console.log(err);
@@ -415,18 +426,44 @@ window.addEventListener("load", function() {
         this.data.currentFolderContents = []
         for (var x in documentTree) {
           var type = 'FILE'
+          var isFile = true
           var icon = '&#128240'
           if (typeof documentTree[x] === 'object') {
             type = 'OBJECT'
+            isFile = false;
             icon = '&#128193'
           }
-          this.data.currentFolderContents.push({text: x, type: type, icon})
+          this.data.currentFolderContents.push({text: x, type, icon, isFile, sync: false})
         }
         if (this.data.currentFocus[this.data.paths.length] >= this.data.currentFolderContents.length) {
           this.data.currentFocus[this.data.paths.length] = this.data.currentFolderContents.length - 1;
           this.verticalNavIndex = this.data.currentFocus[this.data.paths.length];
         }
-        this.render()
+        localforage.getItem('KLOUDLESS_DEFAULT_ACCOUNT_ID')
+        .then((KLOUDLESS_DEFAULT_ACCOUNT_ID) => {
+          return localforage.getItem('KLOUDLESS_ACCOUNT_' + KLOUDLESS_DEFAULT_ACCOUNT_ID)
+        })
+        .then((objs) => {
+          console.log(objs);
+          for (var i in this.data.currentFolderContents) {
+            if (this.data.currentFolderContents[i].isFile) {
+              var path = [...this.data.paths, this.data.currentFolderContents[i].text].join('/');
+              for (var j in objs) {
+                if (objs[j] === path) {
+                  this.data.currentFolderContents[i]['kloudless_id'] = j;
+                  this.data.currentFolderContents[i]['sync'] = true;
+                  this.data.currentFolderContents[i]['icon'] = '&#9733';
+                  delete objs[j]
+                }
+              }
+            }
+          }
+          this.render()
+        })
+        .catch((err) => {
+          this.render()
+          console.log(err);
+        });
       },
       selected: function(val) {
         if (val.type === 'OBJECT') {
@@ -446,7 +483,7 @@ window.addEventListener("load", function() {
             }, (taskSuccess, taskFail, length) => {
               console.log(taskSuccess, taskFail, length);
             });
-          } else if (current.type === 'FILE' && current.text !== '.index') {
+          } else if (current.isFile && current.text !== '.index') {
             DS.deleteFile(JSON.parse(JSON.stringify(this.data.paths)), current.text)
             .then((res) => {
               console.log(res)
@@ -465,6 +502,8 @@ window.addEventListener("load", function() {
         this.data.currentFocus.pop();
         this.methods.navigate();
         return true;
+      } else {
+        POWER.cpuSleepAllowed = true;
       }
     },
     softKeyText: { left: 'Menu', center: 'OPEN', right: 'Option' },
@@ -493,9 +532,15 @@ window.addEventListener("load", function() {
             options.push({ "text": "Paste into this folder"});
           }
         }
-        if (current['type'] === 'FILE') {
+        if (current.isFile) {
           options.push({ "text": "Cut"})
           options.push({ "text": "Copy"})
+          if (current.sync) {
+            options.push({ "text": "Detach"})
+            options.push({ "text": "Synchronize"})
+          } else {
+            options.push({ "text": "Upload"})
+          }
         }
         options.push({ "text": "Delete"});
         this.$router.showOptionMenu('Option', options, 'Select', (selected) => {
@@ -554,7 +599,58 @@ window.addEventListener("load", function() {
                 }
               });
             }
-            //console.log(source, name, to, this.data.pasteType, isCut);
+          } else if (selected.text === 'Upload') {
+            console.log(current);
+            localforage.getItem('KLOUDLESS_API_KEY')
+            .then((KLOUDLESS_API_KEY) => {
+              localforage.getItem('KLOUDLESS_DEFAULT_ACCOUNT_ID')
+              .then((KLOUDLESS_DEFAULT_ACCOUNT_ID) => {
+                var ACCOUNT = new Kloudless.sdk.Account({
+                  token: KLOUDLESS_API_KEY,
+                  tokenType: 'APIKey',
+                  accountId: KLOUDLESS_DEFAULT_ACCOUNT_ID
+                });
+                this.$router.showLoading();
+                getKloudlessFolderId(ACCOUNT, JSON.parse(JSON.stringify(this.data.paths)), 'root', (FOLDER_ID) => {
+                  DS.getFile([...JSON.parse(JSON.stringify(this.data.paths)), current.text].join('/'), (file) => {
+                    const NAME = file.name.split('/');
+                    var reader = new FileReader();
+                    reader.onload = (evt) => {
+                      ACCOUNT.post({ url: 'storage/files', headers: { 'X-Kloudless-Metadata': { parent_id: FOLDER_ID, name: NAME[NAME.length - 1] } }, params: { overwrite: true }, data: evt.target.result })
+                      .then((resource) => {
+                        console.log('File uploaded: ', resource.data);
+                        localforage.getItem('KLOUDLESS_ACCOUNT_' + KLOUDLESS_DEFAULT_ACCOUNT_ID)
+                        .then((objs) => {
+                          if (objs == null) {
+                            objs = {}
+                          }
+                          objs[resource.data.id] = [...JSON.parse(JSON.stringify(this.data.paths)), current.text].join('/')
+                          return localforage.setItem('KLOUDLESS_ACCOUNT_' + KLOUDLESS_DEFAULT_ACCOUNT_ID, objs)
+                        })
+                        .then(() => {
+                          this.methods.navigate();
+                          this.$router.hideLoading();
+                        })
+                        .catch((err) => {
+                          this.$router.hideLoading();
+                        });
+                      });
+                    };
+                    reader.onerror = (err) => {
+                      console.log(err);
+                      this.$router.hideLoading();
+                    };
+                    reader.readAsArrayBuffer(file);
+                  }, (err) => {
+                    console.log(err);
+                    this.$router.hideLoading();
+                  });
+                }, (err) => {
+                  console.log(err);
+                  this.$router.hideLoading();
+                });
+              })
+            });
           } else {
             console.log(selected, current, this.data.cutPath !== '', this.data.copyPath !== '');
           }

@@ -24,6 +24,9 @@
     },
     "desktop-notification": {
       "description": "Required for displaying alerts when app is on background"
+    },
+    "power": {
+      "description": "Required for background processing"
     }
   },
   "messages": [
