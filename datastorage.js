@@ -42,8 +42,39 @@ const DataStorage = (function() {
     }
   }
 
-  DataStorage.prototype.getFile = function(name, success, error) {
-    getFile(this.trailingSlash + name, success, error);
+  DataStorage.prototype.getFile = function(name, success, error, getEditable) {
+    getFile(this.trailingSlash + name, success, error, getEditable);
+  }
+
+  DataStorage.prototype.addFile = function(path, name, blob) {
+    var _this = this;
+    var des = this.trailingSlash + [...path, name].join('/');
+
+    function addFile(success, fail) {
+      var request = SDCARD.addNamed(blob, des);
+      request.onsuccess = function (evt) {
+        var find = SDCARD.get(evt.target.result);
+        find.onsuccess = function (evt2) {
+          success(evt2.target.result);
+        }
+        find.onerror = function (err) {
+          fail(err);
+        }
+      }
+      request.onerror = function (err) {
+        fail(err);
+      }
+    }
+
+    return new Promise((success, fail) => {
+      var remove = SDCARD.delete(des);
+      remove.onsuccess = function () {
+        addFile(success, fail);
+      }
+      remove.onerror = function () {
+        addFile(success, fail);
+      }
+    });
   }
 
   DataStorage.prototype.copyFile = function(path, name, to, isCut) {
@@ -260,8 +291,13 @@ const DataStorage = (function() {
     });
   }
 
-  function getFile(name, success, error) {
-    var request = SDCARD.get(name);
+  function getFile(name, success, error, getEditable) {
+    var request;
+    if (getEditable === true) {
+      request = SDCARD.getEditable(name);
+    } else {
+      request = SDCARD.get(name);
+    }
     request.onsuccess = function () {
       if (success !== undefined) {
         success(this.result);
