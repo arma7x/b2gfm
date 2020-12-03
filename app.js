@@ -258,6 +258,27 @@ window.addEventListener("load", function() {
             },
             unmounted: function() {},
             methods: {
+              filteringSyncFiles: function() {
+                localforage.getItem('KLOUDLESS_ACCOUNT_' + KLOUDLESS_DEFAULT_ACCOUNT_ID)
+                .then((objs) => {
+                  for (var x in this.data.currentFolderContents) {
+                    for( var y in objs) {
+                      if (this.data.currentFolderContents[x].type === 'file' && this.data.currentFolderContents[x].id === y) {
+                        this.data.currentFolderContents[x]['local_path'] = objs[y];
+                        this.data.currentFolderContents[x]['sync'] = true;
+                        this.data.currentFolderContents[x]['icon'] = '&#9733';
+                        delete objs[y];
+                        break;
+                      }
+                    }
+                  }
+                  console.log(this.data.currentFolderContents);
+                  this.render()
+                })
+                .catch(() => {
+                  console.log(err);
+                });
+              },
               navigate: function(folder_id, cb) {
                 this.$router.showLoading();
                 ACCOUNT.get({
@@ -277,6 +298,8 @@ window.addEventListener("load", function() {
                     response.data.objects[x]['icon'] = '&#128240'
                     if (response.data.objects[x].type === 'folder') {
                       response.data.objects[x]['icon'] = '&#128193'
+                    } else if (response.data.objects[x].type === 'file') {
+                      response.data.objects[x]['sync'] = false;
                     }
                     this.data.currentFolderContents.push(response.data.objects[x])
                   }
@@ -292,7 +315,7 @@ window.addEventListener("load", function() {
                   } else if (current.type === 'folder') {
                     this.$router.setSoftKeyText('Exit', 'OPEN', '');
                   }
-                  this.render()
+                  this.methods.filteringSyncFiles();
                 }).catch((err) => {
                   console.log(err);
                 }).finally(() => {
@@ -339,7 +362,17 @@ window.addEventListener("load", function() {
               },
               right: function() {
                 var current = this.data.currentFolderContents[this.data.currentFocus[this.data.previousPaths.length]];
-                console.log(current);
+                if (current.type === 'file') {
+                  var options = []
+                  if (!current.sync) {
+                    options.push({ "text": "Save Offline"});
+                  }
+                  options.push({ "text": "Delete"});
+                  this.$router.showOptionMenu('Option', options, 'Select', (selected) => {
+                    console.log(selected);
+                  }, 0);
+                  
+                }
               }
             },
             dPadNavListener: {
@@ -452,10 +485,20 @@ window.addEventListener("load", function() {
                   this.data.currentFolderContents[i]['kloudless_id'] = j;
                   this.data.currentFolderContents[i]['sync'] = true;
                   this.data.currentFolderContents[i]['icon'] = '&#9733';
-                  delete objs[j]
+                  delete objs[j];
+                  break;
                 }
               }
             }
+          }
+          var current = this.data.currentFolderContents[this.verticalNavIndex];
+          if (current == null) {
+            this.$router.setSoftKeyText('Menu', '', '');
+          } else if (current.type === 'FILE') {
+            this.$router.setSoftKeyText('Menu', 'OPEN', 'Option');
+          } else if (current.type === 'OBJECT') {
+            var txt = this.data.copyPath !== '' || this.data.cutPath !== '' ? 'Option' : '';
+            this.$router.setSoftKeyText('Menu', 'OPEN', txt);
           }
           this.render()
         })
@@ -483,6 +526,8 @@ window.addEventListener("load", function() {
               console.log(taskSuccess, taskFail, length);
             });
           } else if (current.isFile) {
+            // TODO remove id from localforage.getItem('KLOUDLESS_ACCOUNT_' + KLOUDLESS_DEFAULT_ACCOUNT_ID)
+            // TODO remove localforage.removeItem(current.kloudless_id)
             DS.deleteFile(JSON.parse(JSON.stringify(this.data.paths)), current.text)
             .then((res) => {
               console.log(res)
@@ -542,6 +587,9 @@ window.addEventListener("load", function() {
           }
           options.push({ "text": "Delete"});
         }
+        if (options.length === 0) {
+          return
+        }
         this.$router.showOptionMenu('Option', options, 'Select', (selected) => {
           if (selected.text === 'Copy' || selected.text === 'Cut') {
             var temp = JSON.parse(JSON.stringify(this.data.paths))
@@ -585,10 +633,12 @@ window.addEventListener("load", function() {
             } else if (this.data.pasteType === 'FILE') {
               DS.copyFile(source, name, to.join('/'), isCut)
               .then((res) => {
+                // TODO  if cut update id: path from localforage.getItem('KLOUDLESS_ACCOUNT_' + KLOUDLESS_DEFAULT_ACCOUNT_ID)
                 this.data.cutPath = '';
                 this.data.copyPath = '';
                 this.data.pasteType = '';
                 this.$router.showToast(res.target.result);
+                this.methods.navigate();
               })
               .catch((err) => {
                 if (err) {
@@ -652,7 +702,7 @@ window.addEventListener("load", function() {
                         })
                         .catch((err) => {
                           this.$router.hideLoading();
-                          console.log(err);
+                          this.$router.showToast(err.toString());
                         });
                       });
                     } else if (history.indexOf(cloud.data.modified) != -1 && history.indexOf(local.lastModifiedDate.toISOString()) == -1 && (local.lastModifiedDate > lastVersion)) {
@@ -660,7 +710,6 @@ window.addEventListener("load", function() {
                       reader.onload = (evt) => {
                         ACCOUNT.post({ url: 'storage/files', headers: { 'X-Kloudless-Metadata': { parent_id: cloud.data.parent.id, name: cloud.data.name } }, params: { overwrite: true }, data: evt.target.result })
                         .then((resource) => {
-                          console.log('File uploaded: ', resource.data);
                           return localforage.setItem(current.kloudless_id, [...history, local.lastModifiedDate, resource.data.modified]);
                         })
                         .then(() => {
@@ -668,11 +717,12 @@ window.addEventListener("load", function() {
                           this.$router.hideLoading();
                         })
                         .catch((err) => {
+                          this.$router.showToast(err.toString());
                           this.$router.hideLoading();
                         });
                       };
                       reader.onerror = (err) => {
-                        console.log(err);
+                        this.$router.showToast(err.toString());
                         this.$router.hideLoading();
                       };
                       reader.readAsArrayBuffer(local);
@@ -689,94 +739,99 @@ window.addEventListener("load", function() {
                   });
                 }, (err) => {
                   this.$router.hideLoading();
-                  console.log(err);
+                  this.$router.showToast(err.toString());
                 }, true);
               })
               .catch((err) => {
                 this.$router.hideLoading();
-                console.log(err);
+                this.$router.showToast(err.toString());
               })
             })
             .catch((err) => {
-              console.log(err);
+              this.$router.showToast(err.toString());
             });
           } else if (selected.text === 'Link') {
             localforage.getItem('KLOUDLESS_API_KEY')
             .then((KLOUDLESS_API_KEY) => {
-              localforage.getItem('KLOUDLESS_DEFAULT_ACCOUNT_ID')
+              return localforage.getItem('KLOUDLESS_DEFAULT_ACCOUNT_ID')
               .then((KLOUDLESS_DEFAULT_ACCOUNT_ID) => {
-                var ACCOUNT = new Kloudless.sdk.Account({
-                  token: KLOUDLESS_API_KEY,
-                  tokenType: 'APIKey',
-                  accountId: KLOUDLESS_DEFAULT_ACCOUNT_ID
-                });
-                this.$router.showLoading();
-                getKloudlessFolderId(ACCOUNT, JSON.parse(JSON.stringify(this.data.paths)), 'root', (FOLDER_ID) => {
-                  DS.getFile([...JSON.parse(JSON.stringify(this.data.paths)), current.text].join('/'), (file) => {
-                    console.log(file);
-                    const NAME = file.name.split('/');
-                    ACCOUNT.get({ url: 'storage/folders/' + FOLDER_ID + '/contents' })
-                    .then((response) => {
-                      var resume = true;
-                      for (var x in response.data.objects) {
-                        if (response.data.objects[x].type === 'file' && response.data.objects[x].name === NAME[NAME.length - 1]) {
-                          if (new Date(response.data.objects[x].modified) > new Date(file.lastModifiedDate)) {
-                            this.$router.showToast('This device has outdated version');
-                            this.$router.hideLoading();
-                            console.log(response.data.objects[x]);
-                            resume = false;
-                          }
+                return Promise.resolve({KLOUDLESS_API_KEY, KLOUDLESS_DEFAULT_ACCOUNT_ID})
+              });
+            })
+            .then((ACC) => {
+              var ACCOUNT = new Kloudless.sdk.Account({
+                token: ACC.KLOUDLESS_API_KEY,
+                tokenType: 'APIKey',
+                accountId: ACC.KLOUDLESS_DEFAULT_ACCOUNT_ID
+              });
+              this.$router.showLoading();
+              getKloudlessFolderId(ACCOUNT, JSON.parse(JSON.stringify(this.data.paths)), 'root', (FOLDER_ID) => {
+                DS.getFile([...JSON.parse(JSON.stringify(this.data.paths)), current.text].join('/'), (file) => {
+                  const NAME = file.name.split('/');
+                  ACCOUNT.get({ url: 'storage/folders/' + FOLDER_ID + '/contents' })
+                  .then((response) => {
+                    var resume = true;
+                    for (var x in response.data.objects) {
+                      if (response.data.objects[x].type === 'file' && response.data.objects[x].name === NAME[NAME.length - 1]) {
+                        if (new Date(response.data.objects[x].modified) > new Date(file.lastModifiedDate)) {
+                          this.$router.showToast('This device has outdated version');
+                          this.$router.hideLoading();
+                          console.log(response.data.objects[x]);
+                          resume = false;
                         }
                       }
-                      if (resume) {
-                        var reader = new FileReader();
-                        reader.onload = (evt) => {
-                          ACCOUNT.post({ url: 'storage/files', headers: { 'X-Kloudless-Metadata': { parent_id: FOLDER_ID, name: NAME[NAME.length - 1] } }, params: { overwrite: true }, data: evt.target.result })
-                          .then((resource) => {
-                            console.log('File uploaded: ', resource.data);
-                            localforage.getItem('KLOUDLESS_ACCOUNT_' + KLOUDLESS_DEFAULT_ACCOUNT_ID)
-                            .then((objs) => {
-                              if (objs == null) {
-                                objs = {}
-                              }
-                              objs[resource.data.id] = [...JSON.parse(JSON.stringify(this.data.paths)), current.text].join('/')
-                              return localforage.setItem(resource.data.id, [file.lastModifiedDate, resource.data.modified])
-                              .then(() => {
-                                return localforage.setItem('KLOUDLESS_ACCOUNT_' + KLOUDLESS_DEFAULT_ACCOUNT_ID, objs)
-                              });
-                            })
+                    }
+                    if (resume) {
+                      var reader = new FileReader();
+                      reader.onload = (evt) => {
+                        ACCOUNT.post({ url: 'storage/files', headers: { 'X-Kloudless-Metadata': { parent_id: FOLDER_ID, name: NAME[NAME.length - 1] } }, params: { overwrite: true }, data: evt.target.result })
+                        .then((resource) => {
+                          console.log('File uploaded: ', resource.data);
+                          localforage.getItem('KLOUDLESS_ACCOUNT_' + ACC.KLOUDLESS_DEFAULT_ACCOUNT_ID)
+                          .then((objs) => {
+                            if (objs == null) {
+                              objs = {}
+                            }
+                            objs[resource.data.id] = [...JSON.parse(JSON.stringify(this.data.paths)), current.text].join('/')
+                            return localforage.setItem(resource.data.id, [file.lastModifiedDate, resource.data.modified])
                             .then(() => {
-                              this.$router.showToast('Uploaded to cloud');
-                              this.methods.navigate();
-                              this.$router.hideLoading();
-                            })
-                            .catch((err) => {
-                              this.$router.hideLoading();
+                              return localforage.setItem('KLOUDLESS_ACCOUNT_' + ACC.KLOUDLESS_DEFAULT_ACCOUNT_ID, objs)
                             });
+                          })
+                          .then(() => {
+                            this.$router.showToast('Uploaded to cloud');
+                            this.methods.navigate();
+                            this.$router.hideLoading();
                           })
                           .catch((err) => {
                             this.$router.hideLoading();
+                            this.$router.showToast(err.toString());
                           });
-                        };
-                        reader.onerror = (err) => {
-                          console.log(err);
+                        })
+                        .catch((err) => {
                           this.$router.hideLoading();
-                        };
-                        reader.readAsArrayBuffer(file);
-                      }
-                    })
-                    .catch((err) => {
-                      this.$router.hideLoading();
-                    })
-                  }, (err) => {
-                    console.log(err);
+                          this.$router.showToast(err.toString());
+                        });
+                      };
+                      reader.onerror = (err) => {
+                        this.$router.showToast(err.toString());
+                        this.$router.hideLoading();
+                      };
+                      reader.readAsArrayBuffer(file);
+                    }
+                  })
+                  .catch((err) => {
                     this.$router.hideLoading();
-                  });
+                    this.$router.showToast(err.toString());
+                  })
                 }, (err) => {
-                  console.log(err);
+                  this.$router.showToast(err.toString());
                   this.$router.hideLoading();
                 });
-              })
+              }, (err) => {
+                this.$router.showToast(err.toString());
+                this.$router.hideLoading();
+              });
             });
           } else {
             console.log(selected, current, this.data.cutPath !== '', this.data.copyPath !== '');
@@ -811,6 +866,15 @@ window.addEventListener("load", function() {
       arrowUp: function() {
         this.navigateListNav(-1);
         this.data.currentFocus[this.data.paths.length] = this.verticalNavIndex;
+        var current = this.data.currentFolderContents[this.verticalNavIndex];
+        if (current == null) {
+          this.$router.setSoftKeyText('Menu', '', '');
+        } else if (current.type === 'FILE') {
+          this.$router.setSoftKeyText('Menu', 'OPEN', 'Option');
+        } else if (current.type === 'OBJECT') {
+          var txt = this.data.copyPath !== '' || this.data.cutPath !== '' ? 'Option' : '';
+          this.$router.setSoftKeyText('Menu', 'OPEN', txt);
+        }
       },
       arrowRight: function() {
         // this.navigateTabNav(-1);
@@ -818,6 +882,15 @@ window.addEventListener("load", function() {
       arrowDown: function() {
         this.navigateListNav(1);
         this.data.currentFocus[this.data.paths.length] = this.verticalNavIndex;
+        var current = this.data.currentFolderContents[this.verticalNavIndex];
+        if (current == null) {
+          this.$router.setSoftKeyText('Menu', '', '');
+        } else if (current.type === 'FILE') {
+          this.$router.setSoftKeyText('Menu', 'OPEN', 'Option');
+        } else if (current.type === 'OBJECT') {
+          var txt = this.data.copyPath !== '' || this.data.cutPath !== '' ? 'Option' : '';
+          this.$router.setSoftKeyText('Menu', 'OPEN', txt);
+        }
       },
       arrowLeft: function() {
         // this.navigateTabNav(1);
