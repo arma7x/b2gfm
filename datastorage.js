@@ -89,7 +89,7 @@ const DataStorage = (function() {
         request.onsuccess = function (result) {
           success(result);
           if (isCut === true) {
-            _this.deleteFile(path, name);
+            _this.deleteFile(JSON.parse(JSON.stringify(path)), name);
           }
         }
         request.onerror = function (err) {

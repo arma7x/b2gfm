@@ -634,11 +634,59 @@ window.addEventListener("load", function() {
               DS.copyFile(source, name, to.join('/'), isCut)
               .then((res) => {
                 // TODO  if cut update id: path from localforage.getItem('KLOUDLESS_ACCOUNT_' + KLOUDLESS_DEFAULT_ACCOUNT_ID)
+                console.log(isCut);
+                if (isCut) {
+                  var oldPath = [...source, name].join('/');
+                  var newPath = [...to, name].join('/');
+                  console.log(oldPath, newPath);
+                  DS.getFile(newPath, (found) => {
+                    localforage.getItem('KLOUDLESS_DEFAULT_ACCOUNT_ID')
+                    .then((KLOUDLESS_DEFAULT_ACCOUNT_ID) => {
+                      localforage.getItem('KLOUDLESS_ACCOUNT_' + KLOUDLESS_DEFAULT_ACCOUNT_ID)
+                      .then((objs) => {
+                        var idx;
+                        for (var y in objs) {
+                          if (objs[y] === oldPath) {
+                            console.log(objs[y]);
+                            objs[y] = newPath;
+                            idx = y;
+                            break
+                          }
+                        }
+                        console.log(y, objs);
+                        localforage.setItem('KLOUDLESS_ACCOUNT_' + KLOUDLESS_DEFAULT_ACCOUNT_ID, objs)
+                        .then(() => {
+                          localforage.getItem(idx)
+                          .then((history) => {
+                            var last = history.pop();
+                            history.push(found.lastModifiedDate.toISOString());
+                            history.push(last);
+                            localforage.setItem(idx, history);
+                          });
+                          this.methods.navigate();
+                        })
+                        .catch(() => {
+                          this.methods.navigate();
+                        });
+                      })
+                      .catch(() => {
+                        this.methods.navigate();
+                      });
+                    })
+                    .catch(() => {
+                      this.methods.navigate();
+                    });
+                  }, () => {
+                    console.log(1111);
+                    this.methods.navigate();
+                  });
+                } else {
+                  this.methods.navigate();
+                }
                 this.data.cutPath = '';
                 this.data.copyPath = '';
                 this.data.pasteType = '';
                 this.$router.showToast(res.target.result);
-                this.methods.navigate();
               })
               .catch((err) => {
                 if (err) {
