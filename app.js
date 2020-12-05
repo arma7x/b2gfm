@@ -531,6 +531,18 @@ window.addEventListener("load", function() {
             DS.deleteFile(JSON.parse(JSON.stringify(this.data.paths)), current.text)
             .then((res) => {
               console.log(res)
+              localforage.getItem('KLOUDLESS_DEFAULT_ACCOUNT_ID')
+              .then((KLOUDLESS_DEFAULT_ACCOUNT_ID) => {
+                localforage.getItem('KLOUDLESS_ACCOUNT_' + KLOUDLESS_DEFAULT_ACCOUNT_ID)
+                .then((objs) => {
+                  delete objs[current.kloudless_id];
+                  localforage.setItem('KLOUDLESS_ACCOUNT_' + KLOUDLESS_DEFAULT_ACCOUNT_ID, objs)
+                  .then(() => {
+                    localforage.removeItem(current.kloudless_id);
+                    this.methods.navigate();
+                  });
+                });
+              });
             })
             .catch((err) => {
               console.log(err)
@@ -634,11 +646,9 @@ window.addEventListener("load", function() {
               DS.copyFile(source, name, to.join('/'), isCut)
               .then((res) => {
                 // TODO  if cut update id: path from localforage.getItem('KLOUDLESS_ACCOUNT_' + KLOUDLESS_DEFAULT_ACCOUNT_ID)
-                console.log(isCut);
                 if (isCut) {
                   var oldPath = [...source, name].join('/');
                   var newPath = [...to, name].join('/');
-                  console.log(oldPath, newPath);
                   DS.getFile(newPath, (found) => {
                     localforage.getItem('KLOUDLESS_DEFAULT_ACCOUNT_ID')
                     .then((KLOUDLESS_DEFAULT_ACCOUNT_ID) => {
@@ -647,13 +657,11 @@ window.addEventListener("load", function() {
                         var idx;
                         for (var y in objs) {
                           if (objs[y] === oldPath) {
-                            console.log(objs[y]);
                             objs[y] = newPath;
                             idx = y;
                             break
                           }
                         }
-                        console.log(y, objs);
                         localforage.setItem('KLOUDLESS_ACCOUNT_' + KLOUDLESS_DEFAULT_ACCOUNT_ID, objs)
                         .then(() => {
                           localforage.getItem(idx)
@@ -677,7 +685,6 @@ window.addEventListener("load", function() {
                       this.methods.navigate();
                     });
                   }, () => {
-                    console.log(1111);
                     this.methods.navigate();
                   });
                 } else {
