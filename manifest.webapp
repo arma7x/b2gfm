@@ -1,6 +1,6 @@
 {
-  "name": "File Manager",
-  "description": "File manager for KaiOS",
+  "name": "Kloud Storage",
+  "description": "Unofficial Kloudless app for for KaiOS",
   "launch_path": "/index.html",
   "icons": {
     "16": "/icons/icon16x16.png",
