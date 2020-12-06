@@ -115,7 +115,7 @@ const DataStorage = (function() {
         }
       };
       if (!valid) {
-        fail({ name: "NoModificationAllowedError", message: "" });
+        fail("NoModificationAllowedError");
         return
       }
       var request = SDCARD.delete(_this.trailingSlash + path.join('/'));
@@ -143,7 +143,7 @@ const DataStorage = (function() {
         }
       };
       if (!valid) {
-        fail({ name: "NoModificationAllowedError", message: "" });
+        fail("NoModificationAllowedError");
         return
       }
       path.push(".index")

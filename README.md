@@ -1,8 +1,6 @@
-# KaiKit
+# Kloud Storage
 
-## JS framework for KaiOS
-
-## TODO DOCUMENTATION
+## Unofficial Kloudless app for for KaiOS
 
 ## Licence
 

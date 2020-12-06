@@ -9,8 +9,6 @@ window.addEventListener("load", function() {
   });
 
   const state = new KaiState({
-    'counter': -1,
-    'editor': '',
     'fileRegistry': [],
     'documentTree': {}
   });
@@ -48,11 +46,7 @@ window.addEventListener("load", function() {
             this.$router.pop();
           })
           .catch((err) => {
-            if (err) {
-              this.$router.showToast(err.name);
-            } else {
-              this.$router.showToast('Unknown Error');
-            }
+            this.$router.showToast(err.toString());
           });
         }
       },
@@ -135,20 +129,20 @@ window.addEventListener("load", function() {
                           }
                         })
                         .catch((err) => {
-                          console.log(err);
+                          this.$router.showToast(err.toString());
                         });
                         this.$router.showToast(selected['service_name'] + ' - ' + selected['id']);
                       }).catch((err) => {
-                        console.log(err);
+                        this.$router.showToast(err.toString());
                       });
                     }, 'Cancel', null, idx);
                   })
                   .catch((err) => {
-                    console.log(err);
+                    this.$router.showToast(err.toString());
                   });
                 })
                 .catch((err) => {
-                  console.log(err);
+                  this.$router.showToast(err.toString());
                 })
                 .finally((err) => {
                   this.$router.hideLoading();
@@ -174,15 +168,15 @@ window.addEventListener("load", function() {
                       _this.setData({ KLOUDLESS_API_KEY: value });
                       this.$router.showToast('Success');
                     }).catch((err) => {
-                      console.log(err);
+                      this.$router.showToast(err.toString());
                     });
                   } else {
-                    console.log('Empty file');
+                    this.$router.showToast('Empty file');
                   }
                 };
                 reader.readAsText(found);
               } else {
-                console.log('Invalid MIME');
+                this.$router.showToast('Invalid MIME');
               }
             }, (err) => {
               this.$router.showToast(err.name);
@@ -221,7 +215,7 @@ window.addEventListener("load", function() {
       }));
     })
     .catch((err) => {
-      console.log(err);
+      $router.showToast(err.toString());
     });
   }
 
@@ -272,11 +266,10 @@ window.addEventListener("load", function() {
                       }
                     }
                   }
-                  console.log(this.data.currentFolderContents);
                   this.render()
                 })
-                .catch(() => {
-                  console.log(err);
+                .catch((err) => {
+                  this.$router.showToast(err.toString())
                 });
               },
               navigate: function(folder_id, cb) {
@@ -317,7 +310,7 @@ window.addEventListener("load", function() {
                   }
                   this.methods.filteringSyncFiles();
                 }).catch((err) => {
-                  console.log(err);
+                  this.$router.showToast(err.toString())
                 }).finally(() => {
                   this.$router.hideLoading();
                 });
@@ -369,7 +362,6 @@ window.addEventListener("load", function() {
                   }
                   options.push({ "text": "Delete"});
                   this.$router.showOptionMenu('Option', options, 'Select', (selected) => {
-                    //console.log(this.data.previousPaths, this.data.currentPaths, current);
                     if (selected.text === 'Save Offline') {
                       this.$router.showLoading();
                       var offlinePath = [...this.data.currentPaths, current.text].join('/');
@@ -377,7 +369,6 @@ window.addEventListener("load", function() {
                       .then((binary) => {
                         DS.addFile(JSON.parse(JSON.stringify(this.data.currentPaths)), current.text, binary.data)
                         .then((result) => {
-                          console.log(result);
                           return localforage.getItem('KLOUDLESS_ACCOUNT_' + KLOUDLESS_DEFAULT_ACCOUNT_ID)
                           .then((objs) => {
                             if (objs) {
@@ -399,6 +390,45 @@ window.addEventListener("load", function() {
                         .catch((err) => {
                           this.$router.hideLoading();
                           this.$router.showToast(err.toString());
+                        });
+                      })
+                      .catch((err) => {
+                        this.$router.hideLoading();
+                        this.$router.showToast(err.toString());
+                      });
+                    } else if (selected.text === 'Delete') {
+                      this.$router.showLoading();
+                      ACCOUNT.delete({ url: `storage/files/${current.id}` })
+                      .then(() => {
+                        this.$router.showToast("OK");
+                        this.$router.hideLoading();
+                        localforage.getItem('KLOUDLESS_ACCOUNT_' + KLOUDLESS_DEFAULT_ACCOUNT_ID)
+                        .then((objs) => {
+                          if (objs) {
+                            delete objs[current.id];
+                          } else {
+                            objs = {};
+                          }
+                          return localforage.setItem('KLOUDLESS_ACCOUNT_' + KLOUDLESS_DEFAULT_ACCOUNT_ID, objs)
+                          .then(() => {
+                            return localforage.removeItem(current.id);
+                          });
+                        })
+                        .then(() => {
+                          var idx = -1;
+                          this.data.currentFolderContents.forEach((x, i) => {
+                            if (x.id === current.id) {
+                              idx = i;
+                            }
+                          });
+                          if (idx > -1) {
+                            this.data.currentFolderContents.splice(idx, 1);
+                            if (this.verticalNavIndex > 0) {
+                              this.verticalNavIndex = this.verticalNavIndex - 1;
+                              this.data.currentFocus[this.data.previousPaths.length] = this.verticalNavIndex;
+                            }
+                          }
+                          this.methods.filteringSyncFiles();
                         });
                       })
                       .catch((err) => {
@@ -446,12 +476,12 @@ window.addEventListener("load", function() {
           }));
         })
         .catch((err) => {
-          console.log(err);
+          $router.showToast(err.toString())
         });
       }
     })
     .catch((err) => {
-      console.log(err);
+      $router.showToast(err.toString())
     });
   }
 
@@ -540,7 +570,7 @@ window.addEventListener("load", function() {
         })
         .catch((err) => {
           this.render()
-          console.log(err);
+          this.$router.showToast(err.toString())
         });
       },
       selected: function(val) {
@@ -557,16 +587,13 @@ window.addEventListener("load", function() {
             this.$router.showLoading();
             DS.deleteFolder(JSON.parse(JSON.stringify(this.data.paths)), current.text, (taskSuccess, taskFail, length) => {
               this.$router.hideLoading();
-              console.log(taskSuccess, taskFail, length);
+              // console.log(taskSuccess, taskFail, length);
             }, (taskSuccess, taskFail, length) => {
-              console.log(taskSuccess, taskFail, length);
+              // console.log(taskSuccess, taskFail, length);
             });
           } else if (current.isFile) {
-            // TODO remove id from localforage.getItem('KLOUDLESS_ACCOUNT_' + KLOUDLESS_DEFAULT_ACCOUNT_ID)
-            // TODO remove localforage.removeItem(current.kloudless_id)
             DS.deleteFile(JSON.parse(JSON.stringify(this.data.paths)), current.text)
             .then((res) => {
-              console.log(res)
               localforage.getItem('KLOUDLESS_DEFAULT_ACCOUNT_ID')
               .then((KLOUDLESS_DEFAULT_ACCOUNT_ID) => {
                 localforage.getItem('KLOUDLESS_ACCOUNT_' + KLOUDLESS_DEFAULT_ACCOUNT_ID)
@@ -581,7 +608,7 @@ window.addEventListener("load", function() {
               });
             })
             .catch((err) => {
-              console.log(err)
+              this.$router.showToast(err.toString())
             });
           }
         }, 'Cancel', undefined);
@@ -646,11 +673,9 @@ window.addEventListener("load", function() {
             if (selected.text === 'Copy') {
               this.data.cutPath = '';
               this.data.copyPath = temp.join('/');
-              console.log('Copy');
             } else if (selected.text === 'Cut') {
               this.data.cutPath = temp.join('/');
               this.data.copyPath = '';
-              console.log('Cut');
             }
           } else if (selected.text === 'Delete') {
             this.methods.deleteFileOrFolder(current);
@@ -674,14 +699,13 @@ window.addEventListener("load", function() {
                 this.data.cutPath = '';
                 this.data.copyPath = '';
                 this.data.pasteType = '';
-                console.log(taskSuccess, taskFail, length);
+                // console.log(taskSuccess, taskFail, length);
               }, (taskSuccess, taskFail, length) => {
-                console.log(taskSuccess, taskFail, length);
+                // console.log(taskSuccess, taskFail, length);
               }, isCut);
             } else if (this.data.pasteType === 'FILE') {
               DS.copyFile(source, name, to.join('/'), isCut)
               .then((res) => {
-                // TODO  if cut update id: path from localforage.getItem('KLOUDLESS_ACCOUNT_' + KLOUDLESS_DEFAULT_ACCOUNT_ID)
                 if (isCut) {
                   var oldPath = [...source, name].join('/');
                   var newPath = [...to, name].join('/');
@@ -709,18 +733,22 @@ window.addEventListener("load", function() {
                           });
                           this.methods.navigate();
                         })
-                        .catch(() => {
+                        .catch((err) => {
+                          this.$router.showToast(err.toString())
                           this.methods.navigate();
                         });
                       })
-                      .catch(() => {
+                      .catch((err) => {
+                        this.$router.showToast(err.toString())
                         this.methods.navigate();
                       });
                     })
-                    .catch(() => {
+                    .catch((err) => {
+                      this.$router.showToast(err.toString())
                       this.methods.navigate();
                     });
-                  }, () => {
+                  }, (err) => {
+                    this.$router.showToast(err.toString())
                     this.methods.navigate();
                   });
                 } else {
@@ -732,11 +760,7 @@ window.addEventListener("load", function() {
                 this.$router.showToast(res.target.result);
               })
               .catch((err) => {
-                if (err) {
-                  this.$router.showToast(err.name);
-                } else {
-                  this.$router.showToast('Unknown Error');
-                }
+                this.$router.showToast(err.toString())
               });
             }
           } else if (selected.text === 'Unlink') {
@@ -757,6 +781,9 @@ window.addEventListener("load", function() {
             .then(() => {
               localforage.removeItem(current.kloudless_id)
               this.methods.navigate();
+            })
+            .catch((err) => {
+              this.$router.showToast(err.toString())
             });
           } else if (selected.text === 'Sync') {
             localforage.getItem('KLOUDLESS_API_KEY')
@@ -784,7 +811,6 @@ window.addEventListener("load", function() {
                       .then((binary) => {
                         DS.addFile(JSON.parse(JSON.stringify(this.data.paths)), local.name, binary.data)
                         .then((result) => {
-                          console.log(result);
                           return localforage.setItem(current.kloudless_id, [...history, cloud.data.modified, result.lastModifiedDate]);
                         })
                         .then(() => {
@@ -871,7 +897,6 @@ window.addEventListener("load", function() {
                         if (new Date(response.data.objects[x].modified) > new Date(file.lastModifiedDate)) {
                           this.$router.showToast('This device has outdated version');
                           this.$router.hideLoading();
-                          console.log(response.data.objects[x]);
                           resume = false;
                         }
                       }
@@ -881,7 +906,6 @@ window.addEventListener("load", function() {
                       reader.onload = (evt) => {
                         ACCOUNT.post({ url: 'storage/files', headers: { 'X-Kloudless-Metadata': { parent_id: FOLDER_ID, name: NAME[NAME.length - 1] } }, params: { overwrite: true }, data: evt.target.result })
                         .then((resource) => {
-                          console.log('File uploaded: ', resource.data);
                           localforage.getItem('KLOUDLESS_ACCOUNT_' + ACC.KLOUDLESS_DEFAULT_ACCOUNT_ID)
                           .then((objs) => {
                             if (objs == null) {
@@ -929,34 +953,13 @@ window.addEventListener("load", function() {
               });
             });
           } else {
-            console.log(selected, current, this.data.cutPath !== '', this.data.copyPath !== '');
+            // console.log(selected, current, this.data.cutPath !== '', this.data.copyPath !== '');
           }
         }, 0);
       }
     },
-    softKeyInputFocusText: { left: 'Copy', center: 'Paste', right: 'Cut' },
-    softKeyInputFocusListener: {
-      left: function() {
-        if (document.activeElement.tagName === 'INPUT') {
-          if (document.activeElement.value && document.activeElement.value.length > 0) {
-            this.$state.setState('editor', document.activeElement.value);
-          }
-        }
-      },
-      center: function() {
-        if (document.activeElement.tagName === 'INPUT') {
-          document.activeElement.value += this.$state.getState('editor');
-        }
-      },
-      right: function() {
-        if (document.activeElement.tagName === 'INPUT') {
-          if (document.activeElement.value && document.activeElement.value.length > 0) {
-            this.$state.setState('editor', document.activeElement.value);
-            document.activeElement.value = '';
-          }
-        }
-      }
-    },
+    softKeyInputFocusText: {},
+    softKeyInputFocusListener: {},
     dPadNavListener: {
       arrowUp: function() {
         this.navigateListNav(-1);
