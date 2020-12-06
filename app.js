@@ -369,7 +369,43 @@ window.addEventListener("load", function() {
                   }
                   options.push({ "text": "Delete"});
                   this.$router.showOptionMenu('Option', options, 'Select', (selected) => {
-                    console.log(selected);
+                    //console.log(this.data.previousPaths, this.data.currentPaths, current);
+                    if (selected.text === 'Save Offline') {
+                      this.$router.showLoading();
+                      var offlinePath = [...this.data.currentPaths, current.text].join('/');
+                      ACCOUNT.get({ url: `storage/files/${current.id}/contents/` })
+                      .then((binary) => {
+                        DS.addFile(JSON.parse(JSON.stringify(this.data.currentPaths)), current.text, binary.data)
+                        .then((result) => {
+                          console.log(result);
+                          return localforage.getItem('KLOUDLESS_ACCOUNT_' + KLOUDLESS_DEFAULT_ACCOUNT_ID)
+                          .then((objs) => {
+                            if (objs) {
+                              objs[current.id] = offlinePath;
+                            } else {
+                              objs = {};
+                            }
+                            return localforage.setItem('KLOUDLESS_ACCOUNT_' + KLOUDLESS_DEFAULT_ACCOUNT_ID, objs)
+                            .then(() => {
+                              return localforage.setItem(current.id, [current.modified, result.lastModifiedDate]);
+                            });
+                          });
+                        })
+                        .then(() => {
+                          this.methods.filteringSyncFiles();
+                          this.$router.showToast("Saved to local storage");
+                          this.$router.hideLoading();
+                        })
+                        .catch((err) => {
+                          this.$router.hideLoading();
+                          this.$router.showToast(err.toString());
+                        });
+                      })
+                      .catch((err) => {
+                        this.$router.hideLoading();
+                        this.$router.showToast(err.toString());
+                      });
+                    }
                   }, 0);
                   
                 }
@@ -759,6 +795,10 @@ window.addEventListener("load", function() {
                           this.$router.hideLoading();
                           this.$router.showToast(err.toString());
                         });
+                      })
+                      .catch((err) => {
+                        this.$router.hideLoading();
+                        this.$router.showToast(err.toString());
                       });
                     } else if (history.indexOf(cloud.data.modified) != -1 && history.indexOf(local.lastModifiedDate.toISOString()) == -1 && (local.lastModifiedDate > lastVersion)) {
                       var reader = new FileReader();
