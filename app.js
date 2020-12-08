@@ -149,6 +149,63 @@ window.addEventListener("load", function() {
                 });
               } else if (val === 'OPEN_DEFAULT_STORAGE') {
                 cloudStoragePage(this.$router, this.data.KLOUDLESS_API_KEY);
+              } else if (val === "FIX") {
+                localforage.getItem('KLOUDLESS_DEFAULT_ACCOUNT_ID')
+                .then((KLOUDLESS_DEFAULT_ACCOUNT_ID) => {
+                  var ACCOUNT = new Kloudless.sdk.Account({
+                    token: KLOUDLESS_API_KEY,
+                    tokenType: 'APIKey',
+                    accountId: KLOUDLESS_DEFAULT_ACCOUNT_ID
+                  });
+                  localforage.getItem('KLOUDLESS_ACCOUNT_' + KLOUDLESS_DEFAULT_ACCOUNT_ID)
+                  .then((objs) => {
+                    var updateDatabase = (data) => {
+                      this.$router.hideLoading();
+                      localforage.setItem('KLOUDLESS_ACCOUNT_' + KLOUDLESS_DEFAULT_ACCOUNT_ID, data);
+                      // console.log(taskDone, taskLength);
+                      // console.log(data);
+                    }
+                    const taskLength = Object.keys(objs).length;
+                    var taskDone = 0;
+                    this.$router.showLoading();
+                    for (var i in objs) {
+                      const id = i;
+                      DS.getFile(objs[id], (local) => {
+                        ACCOUNT.get({ url: 'storage/files/' + id })
+                        .then(function(cloud) {
+                          taskDone++;
+                          if (!cloud.data.downloadable) {
+                            delete objs[id];
+                            localforage.removeItem(id);
+                          }
+                          if (taskDone === taskLength) {
+                            updateDatabase(objs);
+                          }
+                        })
+                        .catch((err) => {
+                          taskDone++;
+                          if (err.response) {
+                            delete objs[id];
+                            localforage.removeItem(id);
+                          }
+                          if (taskDone === taskLength) {
+                            updateDatabase(objs);
+                          }
+                        });
+                      }, (err) => {
+                        taskDone++;
+                        delete objs[id];
+                        localforage.removeItem(id);
+                        if (taskDone === taskLength) {
+                          updateDatabase(objs);
+                        }
+                      })
+                    }
+                  })
+                })
+                .catch((err) => {
+                  console.log(err);
+                });
               }
             }
           },
