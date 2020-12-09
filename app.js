@@ -101,12 +101,14 @@ window.addEventListener("load", function() {
           selected: function(val) {
             if (typeof val === 'string') {
               if (val === 'RESET') {
-                localforage.clear().then(() => {
-                  this.$router.showToast('OK');
-                  this.$router.pop();
-                }).catch((err) => {
-                  this.$router.showToast(err.toString());
-                });
+                this.$router.showDialog('Confirm ?', 'Are sure to full reset ?', null, 'Yes', () => {
+                  localforage.clear().then(() => {
+                    this.$router.showToast('OK');
+                    this.$router.pop();
+                  }).catch((err) => {
+                    this.$router.showToast(err.toString());
+                  });
+                }, 'Cancel', undefined);
               } else if (val === 'SETUP') {
                 _this = this;
                 DS.getFile('kloudless.txt', (found) => {
@@ -936,6 +938,9 @@ window.addEventListener("load", function() {
           } else if (selected.text === 'Upload') {
             localforage.getItem('KLOUDLESS_API_KEY')
             .then((KLOUDLESS_API_KEY) => {
+              if (KLOUDLESS_API_KEY == null) {
+                return Promise.reject('Please setup api key')
+              }
               return localforage.getItem('KLOUDLESS_DEFAULT_ACCOUNT_ID')
               .then((KLOUDLESS_DEFAULT_ACCOUNT_ID) => {
                 if (KLOUDLESS_DEFAULT_ACCOUNT_ID == null) {
@@ -957,10 +962,10 @@ window.addEventListener("load", function() {
                   ACCOUNT.get({ url: 'storage/folders/' + FOLDER_ID + '/contents' })
                   .then((response) => {
                     var resume = true;
-                    for (var x in response.data.objects) {
+                    for (var z in response.data.objects) {
+                      const x = z;
                       if (response.data.objects[x].type === 'file' && response.data.objects[x].name === NAME[NAME.length - 1]) {
                         if (new Date(response.data.objects[x].modified) > new Date(file.lastModifiedDate)) {
-                          resume = false;
                           localforage.getItem('KLOUDLESS_ACCOUNT_' + ACC.KLOUDLESS_DEFAULT_ACCOUNT_ID)
                           .then((objs) => {
                             if (objs == null) {
@@ -981,6 +986,8 @@ window.addEventListener("load", function() {
                             this.$router.hideLoading();
                             this.$router.showToast(err.toString());
                           });
+                          resume = false;
+                          break;
                         }
                       }
                     }
