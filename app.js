@@ -83,7 +83,6 @@ window.addEventListener("load", function() {
   }
 
   const kloudlessPage = function($router) {
-    // localforage.clear();
     localforage.getItem('KLOUDLESS_API_KEY')
     .then((KLOUDLESS_API_KEY) => {
       $router.push(new Kai({
@@ -101,8 +100,42 @@ window.addEventListener("load", function() {
         methods: {
           selected: function(val) {
             if (typeof val === 'string') {
-              if (val === 'SETUP') {
-                this.methods.setupApiKey();
+              if (val === 'RESET') {
+                localforage.clear().then(() => {
+                  this.$router.showToast('OK');
+                  this.$router.pop();
+                }).catch((err) => {
+                  this.$router.showToast(err.toString());
+                });
+              } else if (val === 'SETUP') {
+                _this = this;
+                DS.getFile('kloudless.txt', (found) => {
+                  if (found.type === 'text/plain') {
+                    var reader = new FileReader();
+                    reader.onload = (event) => {
+                      if (event.target.result.length > 0) {
+                        localforage.setItem('KLOUDLESS_API_KEY', event.target.result)
+                        .then(() => {
+                          return localforage.getItem('KLOUDLESS_API_KEY');
+                        }).then((value) => {
+                          localforage.removeItem('KLOUDLESS_DEFAULT_ACCOUNT_ID');
+                          localforage.removeItem('KLOUDLESS_DEFAULT_ACCOUNT_NAME');
+                          _this.setData({ KLOUDLESS_API_KEY: value });
+                          this.$router.showToast('Success');
+                        }).catch((err) => {
+                          this.$router.showToast(err.toString());
+                        });
+                      } else {
+                        this.$router.showToast('Empty file');
+                      }
+                    };
+                    reader.readAsText(found);
+                  } else {
+                    this.$router.showToast('Invalid MIME');
+                  }
+                }, (err) => {
+                  this.$router.showToast(err.name);
+                });
               } else if (val === 'SELECT_DEFAULT_STORAGE') {
                 this.$router.showLoading();
                 Kloudless.sdk.axios.get('https://api.kloudless.com/v1/accounts', {
@@ -162,8 +195,7 @@ window.addEventListener("load", function() {
                     var updateDatabase = (data) => {
                       this.$router.hideLoading();
                       localforage.setItem('KLOUDLESS_ACCOUNT_' + KLOUDLESS_DEFAULT_ACCOUNT_ID, data);
-                      // console.log(taskDone, taskLength);
-                      // console.log(data);
+                      this.$router.showToast('Done');
                     }
                     const taskLength = Object.keys(objs).length;
                     var taskDone = 0;
@@ -172,8 +204,9 @@ window.addEventListener("load", function() {
                       const id = i;
                       DS.getFile(objs[id], (local) => {
                         ACCOUNT.get({ url: 'storage/files/' + id })
-                        .then(function(cloud) {
+                        .then((cloud) => {
                           taskDone++;
+                          this.$router.showToast(taskDone.toString() + '/' + taskLength.toString());
                           if (!cloud.data.downloadable) {
                             delete objs[id];
                             localforage.removeItem(id);
@@ -184,6 +217,7 @@ window.addEventListener("load", function() {
                         })
                         .catch((err) => {
                           taskDone++;
+                          this.$router.showToast(taskDone.toString() + '/' + taskLength.toString());
                           if (err.response) {
                             delete objs[id];
                             localforage.removeItem(id);
@@ -194,6 +228,7 @@ window.addEventListener("load", function() {
                         });
                       }, (err) => {
                         taskDone++;
+                        this.$router.showToast(taskDone.toString() + '/' + taskLength.toString());
                         delete objs[id];
                         localforage.removeItem(id);
                         if (taskDone === taskLength) {
@@ -208,36 +243,6 @@ window.addEventListener("load", function() {
                 });
               }
             }
-          },
-          setupApiKey: function() {
-            _this = this;
-            DS.getFile('kloudless.txt', (found) => {
-              if (found.type === 'text/plain') {
-                var reader = new FileReader();
-                reader.onload = (event) => {
-                  if (event.target.result.length > 0) {
-                    localforage.setItem('KLOUDLESS_API_KEY', event.target.result)
-                    .then(() => {
-                      return localforage.getItem('KLOUDLESS_API_KEY');
-                    }).then((value) => {
-                      localforage.removeItem('KLOUDLESS_DEFAULT_ACCOUNT_ID');
-                      localforage.removeItem('KLOUDLESS_DEFAULT_ACCOUNT_NAME');
-                      _this.setData({ KLOUDLESS_API_KEY: value });
-                      this.$router.showToast('Success');
-                    }).catch((err) => {
-                      this.$router.showToast(err.toString());
-                    });
-                  } else {
-                    this.$router.showToast('Empty file');
-                  }
-                };
-                reader.readAsText(found);
-              } else {
-                this.$router.showToast('Invalid MIME');
-              }
-            }, (err) => {
-              this.$router.showToast(err.name);
-            });
           }
         },
         softKeyInputFocusText: {},
@@ -415,11 +420,11 @@ window.addEventListener("load", function() {
                 if (current.type === 'file') {
                   var options = []
                   if (!current.sync) {
-                    options.push({ "text": "Save Offline"});
+                    options.push({ "text": "Download"});
                   }
                   options.push({ "text": "Delete"});
                   this.$router.showOptionMenu('Option', options, 'Select', (selected) => {
-                    if (selected.text === 'Save Offline') {
+                    if (selected.text === 'Download') {
                       this.$router.showLoading();
                       var offlinePath = [...this.data.currentPaths, current.text].join('/');
                       ACCOUNT.get({ url: `storage/files/${current.id}/contents/` })
@@ -715,7 +720,7 @@ window.addEventListener("load", function() {
             options.push({ "text": "Sync"})
             options.push({ "text": "Unlink"})
           } else {
-            options.push({ "text": "Link"})
+            options.push({ "text": "Upload"})
           }
           options.push({ "text": "Delete"});
         }
@@ -928,11 +933,14 @@ window.addEventListener("load", function() {
             .catch((err) => {
               this.$router.showToast(err.toString());
             });
-          } else if (selected.text === 'Link') {
+          } else if (selected.text === 'Upload') {
             localforage.getItem('KLOUDLESS_API_KEY')
             .then((KLOUDLESS_API_KEY) => {
               return localforage.getItem('KLOUDLESS_DEFAULT_ACCOUNT_ID')
               .then((KLOUDLESS_DEFAULT_ACCOUNT_ID) => {
+                if (KLOUDLESS_DEFAULT_ACCOUNT_ID == null) {
+                  return Promise.reject('Please select default cloud storage')
+                }
                 return Promise.resolve({KLOUDLESS_API_KEY, KLOUDLESS_DEFAULT_ACCOUNT_ID})
               });
             })
@@ -952,9 +960,27 @@ window.addEventListener("load", function() {
                     for (var x in response.data.objects) {
                       if (response.data.objects[x].type === 'file' && response.data.objects[x].name === NAME[NAME.length - 1]) {
                         if (new Date(response.data.objects[x].modified) > new Date(file.lastModifiedDate)) {
-                          this.$router.showToast('This device has outdated version');
-                          this.$router.hideLoading();
                           resume = false;
+                          localforage.getItem('KLOUDLESS_ACCOUNT_' + ACC.KLOUDLESS_DEFAULT_ACCOUNT_ID)
+                          .then((objs) => {
+                            if (objs == null) {
+                              objs = {}
+                            }
+                            objs[response.data.objects[x].id] = [...JSON.parse(JSON.stringify(this.data.paths)), current.text].join('/')
+                            return localforage.setItem(response.data.objects[x].id, [file.lastModifiedDate, response.data.objects[x].modified])
+                            .then(() => {
+                              return localforage.setItem('KLOUDLESS_ACCOUNT_' + ACC.KLOUDLESS_DEFAULT_ACCOUNT_ID, objs)
+                            });
+                          })
+                          .then(() => {
+                            this.$router.showToast('The file version on this device is outdated');
+                            this.methods.navigate();
+                            this.$router.hideLoading();
+                          })
+                          .catch((err) => {
+                            this.$router.hideLoading();
+                            this.$router.showToast(err.toString());
+                          });
                         }
                       }
                     }
@@ -1008,6 +1034,10 @@ window.addEventListener("load", function() {
                 this.$router.showToast(err.toString());
                 this.$router.hideLoading();
               });
+            })
+            .catch((err) => {
+              this.$router.hideLoading();
+              this.$router.showToast(err.toString());
             });
           } else {
             // console.log(selected, current, this.data.cutPath !== '', this.data.copyPath !== '');

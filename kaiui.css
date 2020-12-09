@@ -787,11 +787,11 @@ button.kui-btn:focus {
     }
 
     .kui-option-menu {
-        max-height: 178px;
+        max-height: 288px;
     }
 
     .kui-options {
-        max-height: 150px;
+        max-height: 200px;
     }
 }
 

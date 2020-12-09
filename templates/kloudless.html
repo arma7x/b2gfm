@@ -3,8 +3,8 @@
     {{#KLOUDLESS_API_KEY}}
     <li class="kloudlessPageNav" @click='selected("SELECT_DEFAULT_STORAGE")'>Default Cloud Storage</li>
     <li class="kloudlessPageNav" @click='selected("OPEN_DEFAULT_STORAGE")'>Open Cloud Storage</li>
-    <li class="kloudlessPageNav" @click='selected("FIX")'>Fix Database</li>
-    <li class="kloudlessPageNav" @click='selected("SETUP")'>Change API Key</li>
+    <li class="kloudlessPageNav" @click='selected("FIX")'>Fix Missing Files</li>
+    <li class="kloudlessPageNav" @click='selected("RESET")'>Reset</li>
     {{/KLOUDLESS_API_KEY}}
     {{^KLOUDLESS_API_KEY}}
     <li class="kloudlessPageNav" @click='selected("SETUP")'>Setup API Key</li>
