@@ -1,12 +1,17 @@
 {
+  "version": "1.0.0",
   "name": "Kloud Storage",
   "description": "Unofficial Kloudless app for for KaiOS",
   "launch_path": "/index.html",
+  "theme": "#873eff",
+  "theme_color": "#873eff",
+  "background_color": "#873eff",
+  "categories": [
+    "utilities"
+  ],
   "icons": {
-    "16": "/icons/icon16x16.png",
-    "48": "/icons/icon48x48.png",
-    "60": "/icons/icon60x60.png",
-    "128": "/icons/icon128x128.png"
+    "56": "/icons/icon56x56.png",
+    "112": "/icons/icon112x112.png"
   },
   "developer": {
     "name": "arma7x",
@@ -22,16 +27,16 @@
     "systemXHR": {
       "description": "Required to load remote content"
     },
-    "desktop-notification": {
-      "description": "Required for displaying alerts when app is on background"
-    },
     "power": {
       "description": "Required for background processing"
     }
   },
-  "messages": [
-    {
-      "serviceworker-notification": "/index.html"
+  "locales": {
+    "en-US": {
+      "name": "K-Music",
+      "subtitle": "An audio player for KaiOS with playlist manager",
+      "description": "An audio player for KaiOS with playlist manager"
     }
-  ]
+  },
+  "default_locale": "en-US"
 }
