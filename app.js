@@ -425,6 +425,7 @@ window.addEventListener("load", function() {
                     options.push({ "text": "Download"});
                   }
                   options.push({ "text": "Delete"});
+                  options.push({ "text": "Properties"})
                   this.$router.showOptionMenu('Option', options, 'Select', (selected) => {
                     if (selected.text === 'Download') {
                       this.$router.showLoading();
@@ -499,6 +500,15 @@ window.addEventListener("load", function() {
                         this.$router.hideLoading();
                         this.$router.showToast(err.toString());
                       });
+                    } else if (selected.text === 'Properties') {
+                      var text = '';
+                      text += 'ID: ' + current.id + '</br>';
+                      text += 'Name: ' + current.name + '</br>';
+                      text += 'Sync: ' + current.sync + '</br>';
+                      text += 'Modified: ' + new Date(current.modified).toLocaleString() + '</br>';
+                      text += 'MIME: ' + current.mime_type + '</br>';
+                      text += 'Size: ' + current.size + 'byte</br>';
+                      this.$router.showDialog('Properties', text, null, 'Close', undefined, ' ', undefined);
                     }
                   }, 0);
                   
@@ -625,7 +635,7 @@ window.addEventListener("load", function() {
           if (current == null) {
             this.$router.setSoftKeyText('Menu', '', '');
           } else if (current.type === 'FILE') {
-            this.$router.setSoftKeyText('Menu', 'OPEN', 'Option');
+            this.$router.setSoftKeyText('Menu', '', 'Option');
           } else if (current.type === 'OBJECT') {
             var txt = this.data.copyPath !== '' || this.data.cutPath !== '' ? 'Option' : '';
             this.$router.setSoftKeyText('Menu', 'OPEN', txt);
@@ -689,7 +699,7 @@ window.addEventListener("load", function() {
         POWER.cpuSleepAllowed = true;
       }
     },
-    softKeyText: { left: 'Menu', center: 'OPEN', right: 'Option' },
+    softKeyText: { left: 'Menu', center: '', right: 'Option' },
     softKeyListener: {
       left: function() {
         this.$router.showOptionMenu('Menu', this.data.menu, 'Select', (selected) => {
@@ -725,6 +735,9 @@ window.addEventListener("load", function() {
             options.push({ "text": "Upload"})
           }
           options.push({ "text": "Delete"});
+        }
+        if (current.isFile) {
+          options.push({ "text": "Properties"})
         }
         if (options.length === 0) {
           return
@@ -1046,8 +1059,18 @@ window.addEventListener("load", function() {
               this.$router.hideLoading();
               this.$router.showToast(err.toString());
             });
-          } else {
-            // console.log(selected, current, this.data.cutPath !== '', this.data.copyPath !== '');
+          } else if (selected.text === 'Properties') {
+            console.log(current);
+            DS.getFile([...JSON.parse(JSON.stringify(this.data.paths)), current.text].join('/'), (properties) => {
+              var text = '';
+              text += 'ID: ' + current.kloudless_id + '</br>';
+              text += 'Name: ' + properties.name + '</br>';
+              text += 'Sync: ' + current.sync + '</br>';
+              text += 'Modified: ' + new Date(properties.lastModifiedDate).toLocaleString() + '</br>';
+              text += 'MIME: ' + properties.type + '</br>';
+              text += 'Size: ' + properties.size + 'byte</br>';
+              this.$router.showDialog('Properties', text, null, 'Close', undefined, ' ', undefined);
+            });
           }
         }, 0);
       }
@@ -1062,7 +1085,7 @@ window.addEventListener("load", function() {
         if (current == null) {
           this.$router.setSoftKeyText('Menu', '', '');
         } else if (current.type === 'FILE') {
-          this.$router.setSoftKeyText('Menu', 'OPEN', 'Option');
+          this.$router.setSoftKeyText('Menu', '', 'Option');
         } else if (current.type === 'OBJECT') {
           var txt = this.data.copyPath !== '' || this.data.cutPath !== '' ? 'Option' : '';
           this.$router.setSoftKeyText('Menu', 'OPEN', txt);
@@ -1078,7 +1101,7 @@ window.addEventListener("load", function() {
         if (current == null) {
           this.$router.setSoftKeyText('Menu', '', '');
         } else if (current.type === 'FILE') {
-          this.$router.setSoftKeyText('Menu', 'OPEN', 'Option');
+          this.$router.setSoftKeyText('Menu', '', 'Option');
         } else if (current.type === 'OBJECT') {
           var txt = this.data.copyPath !== '' || this.data.cutPath !== '' ? 'Option' : '';
           this.$router.setSoftKeyText('Menu', 'OPEN', txt);

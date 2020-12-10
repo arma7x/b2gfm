@@ -370,7 +370,7 @@ Kai.createDialog = function(title, body, dataCb, positiveText, positiveCb, negat
       title: title,
       body: body
     },
-    template: '<div class="kui-option-menu"><div class="kui-option-title">{{ title }}</div><div class="kui-option-body kai-padding-5">{{ body }}</div></div>',
+    template: '<div class="kui-option-menu"><div class="kui-option-title">{{ title }}</div><div class="kui-option-body kai-padding-5">{{{ body }}}</div></div>',
     softKeyText: { left: negativeText || 'Cancel', center: neutralText || '', right: positiveText || 'Yes' },
     softKeyListener: {
       left: function() {
