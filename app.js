@@ -1099,7 +1099,7 @@ window.addEventListener("load", function() {
             DS.getFile([...JSON.parse(JSON.stringify(this.data.paths)), current.text].join('/'), (properties) => {
               var text = '';
               text += 'ID: ' + current.kloudless_id + '</br>';
-              text += 'Name: ' + properties.name + '</br>';
+              text += 'Name: ' + current.text + '</br>';
               text += 'Sync: ' + current.sync + '</br>';
               text += 'Modified: ' + new Date(properties.lastModifiedDate).toLocaleString() + '</br>';
               text += 'MIME: ' + properties.type + '</br>';
