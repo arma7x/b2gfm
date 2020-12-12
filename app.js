@@ -198,8 +198,12 @@ window.addEventListener("load", function() {
                       this.$router.hideLoading();
                       localforage.setItem('KLOUDLESS_ACCOUNT_' + KLOUDLESS_DEFAULT_ACCOUNT_ID, data);
                       this.$router.showToast('Done');
+                      POWER.cpuSleepAllowed = true;
                     }
                     const taskLength = Object.keys(objs).length;
+                    if (taskLength > 0) {
+                      POWER.cpuSleepAllowed = false;
+                    }
                     var taskDone = 0;
                     this.$router.showLoading();
                     for (var i in objs) {
@@ -430,11 +434,42 @@ window.addEventListener("load", function() {
                     if (selected.text === 'Download') {
                       this.$router.showLoading();
                       var offlinePath = [...this.data.currentPaths, current.text].join('/');
-                      ACCOUNT.get({ url: `storage/files/${current.id}/contents/` })
-                      .then((binary) => {
-                        DS.addFile(JSON.parse(JSON.stringify(this.data.currentPaths)), current.text, binary.data)
-                        .then((result) => {
-                          return localforage.getItem('KLOUDLESS_ACCOUNT_' + KLOUDLESS_DEFAULT_ACCOUNT_ID)
+                      const saveOffline = () => {
+                        ACCOUNT.get({ url: `storage/files/${current.id}/contents/` })
+                        .then((binary) => {
+                          DS.addFile(JSON.parse(JSON.stringify(this.data.currentPaths)), current.text, binary.data)
+                          .then((result) => {
+                            return localforage.getItem('KLOUDLESS_ACCOUNT_' + KLOUDLESS_DEFAULT_ACCOUNT_ID)
+                            .then((objs) => {
+                              if (objs) {
+                                objs[current.id] = offlinePath;
+                              } else {
+                                objs = {};
+                              }
+                              return localforage.setItem('KLOUDLESS_ACCOUNT_' + KLOUDLESS_DEFAULT_ACCOUNT_ID, objs)
+                              .then(() => {
+                                return localforage.setItem(current.id, [current.modified, result.lastModifiedDate]);
+                              });
+                            });
+                          })
+                          .then(() => {
+                            this.methods.filteringSyncFiles();
+                            this.$router.showToast("Saved to local storage");
+                            this.$router.hideLoading();
+                          })
+                          .catch((err) => {
+                            this.$router.hideLoading();
+                            this.$router.showToast(err.toString());
+                          });
+                        })
+                        .catch((err) => {
+                          this.$router.hideLoading();
+                          this.$router.showToast(err.toString());
+                        });
+                      }
+                      DS.getFile(offlinePath, (found) => {
+                        if (new Date(found.lastModifiedDate) > new Date(current.modified)) {
+                          localforage.getItem('KLOUDLESS_ACCOUNT_' + KLOUDLESS_DEFAULT_ACCOUNT_ID)
                           .then((objs) => {
                             if (objs) {
                               objs[current.id] = offlinePath;
@@ -443,23 +478,23 @@ window.addEventListener("load", function() {
                             }
                             return localforage.setItem('KLOUDLESS_ACCOUNT_' + KLOUDLESS_DEFAULT_ACCOUNT_ID, objs)
                             .then(() => {
-                              return localforage.setItem(current.id, [current.modified, result.lastModifiedDate]);
+                              return localforage.setItem(current.id, [current.modified, found.lastModifiedDate]);
                             });
+                          })
+                          .then(() => {
+                            this.methods.filteringSyncFiles();
+                            this.$router.showToast('The file version on cloud storage is outdated');
+                            this.$router.hideLoading();
+                          })
+                          .catch((err) => {
+                            this.$router.hideLoading();
+                            this.$router.showToast(err.toString());
                           });
-                        })
-                        .then(() => {
-                          this.methods.filteringSyncFiles();
-                          this.$router.showToast("Saved to local storage");
-                          this.$router.hideLoading();
-                        })
-                        .catch((err) => {
-                          this.$router.hideLoading();
-                          this.$router.showToast(err.toString());
-                        });
-                      })
-                      .catch((err) => {
-                        this.$router.hideLoading();
-                        this.$router.showToast(err.toString());
+                        } else {
+                          saveOffline();
+                        }
+                      }, (notfound) => {
+                        saveOffline();
                       });
                     } else if (selected.text === 'Delete') {
                       this.$router.showLoading();
@@ -991,7 +1026,7 @@ window.addEventListener("load", function() {
                             });
                           })
                           .then(() => {
-                            this.$router.showToast('The file version on this device is outdated');
+                            this.$router.showToast('The file version on local storage is outdated');
                             this.methods.navigate();
                             this.$router.hideLoading();
                           })
