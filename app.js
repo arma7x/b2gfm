@@ -435,8 +435,10 @@ window.addEventListener("load", function() {
                       this.$router.showLoading();
                       var offlinePath = [...this.data.currentPaths, current.text].join('/');
                       const saveOffline = () => {
+                        POWER.cpuSleepAllowed = false;
                         ACCOUNT.get({ url: `storage/files/${current.id}/contents/` })
                         .then((binary) => {
+                          POWER.cpuSleepAllowed = true;
                           DS.addFile(JSON.parse(JSON.stringify(this.data.currentPaths)), current.text, binary.data)
                           .then((result) => {
                             return localforage.getItem('KLOUDLESS_ACCOUNT_' + KLOUDLESS_DEFAULT_ACCOUNT_ID)
@@ -463,6 +465,7 @@ window.addEventListener("load", function() {
                           });
                         })
                         .catch((err) => {
+                          POWER.cpuSleepAllowed = true;
                           this.$router.hideLoading();
                           this.$router.showToast(err.toString());
                         });
@@ -919,8 +922,10 @@ window.addEventListener("load", function() {
                   .then((history) => {
                     const lastVersion = new Date(history[history.length - 1]);
                     if (history.indexOf(cloud.data.modified) == -1 && history.indexOf(local.lastModifiedDate.toISOString()) != -1 && (new Date(cloud.data.modified) > lastVersion)) {
+                      POWER.cpuSleepAllowed = false;
                       ACCOUNT.get({ url: `storage/files/${current.kloudless_id}/contents/` })
                       .then((binary) => {
+                        POWER.cpuSleepAllowed = true;
                         DS.addFile(JSON.parse(JSON.stringify(this.data.paths)), local.name, binary.data)
                         .then((result) => {
                           return localforage.setItem(current.kloudless_id, [...history, cloud.data.modified, result.lastModifiedDate]);
@@ -935,14 +940,17 @@ window.addEventListener("load", function() {
                         });
                       })
                       .catch((err) => {
+                        POWER.cpuSleepAllowed = true;
                         this.$router.hideLoading();
                         this.$router.showToast(err.toString());
                       });
                     } else if (history.indexOf(cloud.data.modified) != -1 && history.indexOf(local.lastModifiedDate.toISOString()) == -1 && (local.lastModifiedDate > lastVersion)) {
                       var reader = new FileReader();
                       reader.onload = (evt) => {
+                        POWER.cpuSleepAllowed = false;
                         ACCOUNT.post({ url: 'storage/files', headers: { 'X-Kloudless-Metadata': { parent_id: cloud.data.parent.id, name: cloud.data.name } }, params: { overwrite: true }, data: evt.target.result })
                         .then((resource) => {
+                          POWER.cpuSleepAllowed = true;
                           return localforage.setItem(current.kloudless_id, [...history, local.lastModifiedDate, resource.data.modified]);
                         })
                         .then(() => {
@@ -950,6 +958,7 @@ window.addEventListener("load", function() {
                           this.$router.hideLoading();
                         })
                         .catch((err) => {
+                          POWER.cpuSleepAllowed = true;
                           this.$router.showToast(err.toString());
                           this.$router.hideLoading();
                         });
@@ -1042,8 +1051,10 @@ window.addEventListener("load", function() {
                     if (resume) {
                       var reader = new FileReader();
                       reader.onload = (evt) => {
+                        POWER.cpuSleepAllowed = false;
                         ACCOUNT.post({ url: 'storage/files', headers: { 'X-Kloudless-Metadata': { parent_id: FOLDER_ID, name: NAME[NAME.length - 1] } }, params: { overwrite: true }, data: evt.target.result })
                         .then((resource) => {
+                          POWER.cpuSleepAllowed = true;
                           localforage.getItem('KLOUDLESS_ACCOUNT_' + ACC.KLOUDLESS_DEFAULT_ACCOUNT_ID)
                           .then((objs) => {
                             if (objs == null) {
@@ -1066,6 +1077,7 @@ window.addEventListener("load", function() {
                           });
                         })
                         .catch((err) => {
+                          POWER.cpuSleepAllowed = true;
                           this.$router.hideLoading();
                           this.$router.showToast(err.toString());
                         });
@@ -1098,7 +1110,9 @@ window.addEventListener("load", function() {
             console.log(current);
             DS.getFile([...JSON.parse(JSON.stringify(this.data.paths)), current.text].join('/'), (properties) => {
               var text = '';
-              text += 'ID: ' + current.kloudless_id + '</br>';
+              if (current.kloudless_id) {
+                text += 'ID: ' + current.kloudless_id + '</br>';
+              }
               text += 'Name: ' + current.text + '</br>';
               text += 'Sync: ' + current.sync + '</br>';
               text += 'Modified: ' + new Date(properties.lastModifiedDate).toLocaleString() + '</br>';
