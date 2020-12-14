@@ -609,7 +609,8 @@ window.addEventListener("load", function() {
       pasteType: '',
       menu: [
         { "text": "Create new folder" },
-        { "text": "Kloudless" }
+        { "text": "Kloudless" },
+        { "text": "Read Me" }
       ]
     },
     verticalNavClass: '.mainNav',
@@ -745,6 +746,8 @@ window.addEventListener("load", function() {
             this.$router.push(newFolderPage(JSON.parse(JSON.stringify(this.data.paths))));
           } else if (selected.text === 'Kloudless') {
             kloudlessPage(this.$router);
+          } else if (selected.text === 'Read Me') {
+            this.$router.push('readMe');
           }
         }, 0);
       },
@@ -1162,12 +1165,39 @@ window.addEventListener("load", function() {
     }
   });
 
+  const readMe = new Kai({
+    name: '_readMe_',
+    data: {
+      title: '_readMe_'
+    },
+    templateUrl: document.location.origin + '/templates/read_me.html',
+    mounted: function() {},
+    unmounted: function() {},
+    methods: {},
+    softKeyText: { left: '', center: '', right: '' },
+    softKeyListener: {
+      left: function() {},
+      center: function() {},
+      right: function() {}
+    },
+    dPadNavListener: {
+      arrowUp: function() {
+      },
+      arrowDown: function() {
+      }
+    }
+  });
+
   const router = new KaiRouter({
     title: 'File Manager',
     routes: {
       'index' : {
         name: 'mainPage',
         component: mainPage
+      },
+      'readMe' : {
+        name: 'readMe',
+        component: readMe
       }
     }
   });

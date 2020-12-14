@@ -8,7 +8,7 @@
 
 2) Create new project, https://developers.kloudless.com/new
 
-3) This is sample preview of your dashboard https://i.imgur.com/cVpNb3N.png
+3) This is sample preview of your dashboard, https://i.imgur.com/cVpNb3N.png
 
 4) Click 'Walkthrough'(refer 3.) to add cloud storages to your account
 
@@ -16,9 +16,9 @@
 
 !!! Goto Settings > Storage > Default Media Storage & Choose SD CARD
 
-6) Open 'Kloud Storage', left click 'Menu' then select 'Kloudless', select 'Setup API Key', if success 4 new menu will appear:
+6) Open 'Kloud Storage', left click 'Menu' then select 'Kloudless', next select 'Setup API Key'. If success, 4 new menu will appear:
 
-- Default Cloud Storage(select default cloud storage)
+- Default Cloud Storage(set default cloud storage)
 
 - Open Cloud Storage(browse cloud storage)
 
@@ -28,7 +28,7 @@
 
 _______________________________________________________________________________
 
-## LOCAL STORAGE
+## LOCAL STORAGE(FILE MANAGER)
 
  - sync file between local & cloud
 
