@@ -4,7 +4,7 @@
 
 ## Installation
 
-1) Register free Kloudless developer, account https://developers.kloudless.com/account/login
+1) Register free Kloudless developer account, https://developers.kloudless.com/account/login
 
 2) Create new project, https://developers.kloudless.com/new
 
