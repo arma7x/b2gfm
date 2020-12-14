@@ -1,4 +1,4 @@
-# Kloud Storage
+# Kloud File Manager
 
 ## Unofficial Kloudless app for for KaiOS
 
@@ -16,7 +16,7 @@
 
 !!! Goto Settings > Storage > Default Media Storage & Choose SD CARD
 
-6) Open 'Kloud Storage', left click 'Menu' then select 'Kloudless', next select 'Setup API Key'. If success, 4 new menu will appear:
+6) Open 'Kloud File Manager', left click 'Menu' then select 'Kloudless', next select 'Setup API Key'. If success, 4 new menu will appear:
 
 - Default Cloud Storage(set default cloud storage)
 
