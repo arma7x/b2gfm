@@ -135,10 +135,6 @@ h1, h2, h3, h4, h5, ul, p {
     padding: 0;
 }
 
-.p-5 {
-  padding: 0 5px!important;
-}
-
 .statusbar-placeholder {
     background-color: #320374;
     height: 26px;
@@ -782,6 +778,11 @@ button.kui-btn:focus {
 
 /* KaiOS portrait devices (240x320) */
 @media only screen and (orientation : portrait) {
+
+    .kai-container {
+      width: 240px;
+    }
+
     .kui-content-area {
         max-height: 236px;
     }
@@ -797,6 +798,11 @@ button.kui-btn:focus {
 
 /* KaiOS landscape devices (320x240) */
 @media screen and (orientation: landscape) {
+
+    .kai-container {
+      width: 320px;
+    }
+
     .kui-content-area {
         max-height: 156px;
     }
@@ -879,6 +885,7 @@ button.kui-btn:focus {
 
 .kai-container {
     padding: 0px;
+    word-wrap: break-word;
 }
 
 .kai-padding-5 {
