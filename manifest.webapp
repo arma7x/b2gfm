@@ -20,7 +20,6 @@
   "origin": "app://kfm.arma7x.com",
   "type": "privileged",
   "permissions": {
-    "spatialnavigation-app-manage": {},
     "device-storage:sdcard":{
       "access": "readwrite"
     },
