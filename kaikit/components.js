@@ -309,7 +309,7 @@ Kai.createToast = function(EL) {
   });
 }
 
-Kai.createOptionMenu = function(title, options, selectText, selectCb, verticalNavIndex = -1, $router) {
+Kai.createOptionMenu = function(title, options, selectText, selectCb, closeCb, verticalNavIndex = -1, $router) {
   return new Kai({
     name: 'option_menu',
     data: {
@@ -359,11 +359,16 @@ Kai.createOptionMenu = function(title, options, selectText, selectCb, verticalNa
         this.navigateListNav(1);
       },
       arrowLeft: function() {},
+    },
+    backKeyListener: function() {
+      if (closeCb) {
+        closeCb();
+      }
     }
   });
 }
 
-Kai.createDialog = function(title, body, dataCb, positiveText, positiveCb, negativeText, negativeCb, neutralText, neutralCb, $router) {
+Kai.createDialog = function(title, body, dataCb, positiveText, positiveCb, negativeText, negativeCb, neutralText, neutralCb, closeCb, $router) {
   return new Kai({
     name: 'dialog',
     data: {
@@ -397,11 +402,16 @@ Kai.createDialog = function(title, body, dataCb, positiveText, positiveCb, negat
           positiveCb(dataCb);
         }
       }
+    },
+    backKeyListener: function() {
+      if (closeCb) {
+        closeCb();
+      }
     }
   });
 }
 
-Kai.createSingleSelector = function(title, options, selectText, selectCb, cancelText, cancelCb, verticalNavIndex = -1, $router) {
+Kai.createSingleSelector = function(title, options, selectText, selectCb, cancelText, cancelCb, closeCb, verticalNavIndex = -1, $router) {
 
   options = JSON.parse(JSON.stringify(options));
   options.forEach(function(v,k) {
@@ -479,11 +489,16 @@ Kai.createSingleSelector = function(title, options, selectText, selectCb, cancel
         this.navigateListNav(1);
       },
       arrowLeft: function() {},
+    },
+    backKeyListener: function() {
+      if (closeCb) {
+        closeCb();
+      }
     }
   });
 }
 
-Kai.createMultiSelector = function(title, options, selectText, selectCb, saveText, saveCb, cancelText, cancelCb, verticalNavIndex = -1, $router) {
+Kai.createMultiSelector = function(title, options, selectText, selectCb, saveText, saveCb, cancelText, cancelCb, closeCb, verticalNavIndex = -1, $router) {
 
   options = JSON.parse(JSON.stringify(options));
   const focus = options[verticalNavIndex === -1 ? 0 : verticalNavIndex];
@@ -594,12 +609,17 @@ Kai.createMultiSelector = function(title, options, selectText, selectCb, saveTex
         }
       },
       arrowLeft: function() {},
+    },
+    backKeyListener: function() {
+      if (closeCb) {
+        closeCb();
+      }
     }
   });
   return multi_selector.reset();
 }
 
-Kai.createDatePicker = function(year, month, day = 1, selectCb, $router) {
+Kai.createDatePicker = function(year, month, day = 1, selectCb, closeCb, $router) {
 
   const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
   const today = new Date();
@@ -744,11 +764,16 @@ Kai.createDatePicker = function(year, month, day = 1, selectCb, $router) {
         }
         this.methods.focus();
       }
+    },
+    backKeyListener: function() {
+      if (closeCb) {
+        closeCb();
+      }
     }
   });
 }
 
-Kai.createTimePicker = function(hour, minute, is12H, selectCb, $router) {
+Kai.createTimePicker = function(hour, minute, is12H, selectCb, closeCb, $router) {
 
   const today = new Date();
 
@@ -935,6 +960,11 @@ Kai.createTimePicker = function(hour, minute, is12H, selectCb, $router) {
           this.setData({ selector: this.data.selector - 1 });
         }
         this.methods.focus();
+      }
+    },
+    backKeyListener: function() {
+      if (closeCb) {
+        closeCb();
       }
     }
   });

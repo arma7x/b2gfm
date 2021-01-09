@@ -207,6 +207,7 @@ const KaiRouter = (function() {
   }
 
   KaiRouter.prototype.showBottomSheet = function(component) {
+    document.body.style.position = '';
     component.mount('__kai_bottom_sheet__');
     this.setSoftKeyText(component.softKeyText.left, component.softKeyText.center, component.softKeyText.right);
     this.bottomSheet = true;
@@ -246,11 +247,11 @@ const KaiRouter = (function() {
     }
   }
 
-  KaiRouter.prototype.showDialog = function(title, body, dataCb, positiveText, positiveCb, negativeText, negativeCb, neutralText, neutralCb) {
+  KaiRouter.prototype.showDialog = function(title, body, dataCb, positiveText, positiveCb, negativeText, negativeCb, neutralText, neutralCb, closeCb) {
     if (document.activeElement.tagName === 'INPUT') {
       document.activeElement.blur();
     }
-    const dialog = Kai.createDialog(title, body, dataCb, positiveText, positiveCb, negativeText, negativeCb, neutralText, neutralCb, this);
+    const dialog = Kai.createDialog(title, body, dataCb, positiveText, positiveCb, negativeText, negativeCb, neutralText, neutralCb, closeCb, this);
     this.showBottomSheet(dialog);
   }
 
@@ -258,11 +259,11 @@ const KaiRouter = (function() {
     this.hideBottomSheet();
   }
 
-  KaiRouter.prototype.showOptionMenu = function(title, options, selectText, selectCb, verticalNavIndex = -1) {
+  KaiRouter.prototype.showOptionMenu = function(title, options, selectText, selectCb, closeCb, verticalNavIndex = -1) {
     if (document.activeElement.tagName === 'INPUT') {
       document.activeElement.blur();
     }
-    const option_menu = Kai.createOptionMenu(title, options, selectText, selectCb, verticalNavIndex, this);
+    const option_menu = Kai.createOptionMenu(title, options, selectText, selectCb, closeCb, verticalNavIndex, this);
     this.showBottomSheet(option_menu);
   }
 
@@ -270,11 +271,11 @@ const KaiRouter = (function() {
     this.hideBottomSheet();
   }
 
-  KaiRouter.prototype.showSingleSelector = function(title, options, selectText, selectCb, cancelText, cancelCb, verticalNavIndex = -1) {
+  KaiRouter.prototype.showSingleSelector = function(title, options, selectText, selectCb, cancelText, cancelCb, closeCb, verticalNavIndex = -1) {
     if (document.activeElement.tagName === 'INPUT') {
       document.activeElement.blur();
     }
-    const single_selector = Kai.createSingleSelector(title, options, selectText, selectCb, cancelText, cancelCb, verticalNavIndex, this);
+    const single_selector = Kai.createSingleSelector(title, options, selectText, selectCb, cancelText, cancelCb, closeCb, verticalNavIndex, this);
     this.showBottomSheet(single_selector);
   }
 
@@ -282,7 +283,7 @@ const KaiRouter = (function() {
     this.hideBottomSheet();
   }
 
-  KaiRouter.prototype.showMultiSelector = function(title, options, selectText, selectCb, saveText, saveCb, cancelText, cancelCb, verticalNavIndex = -1) {
+  KaiRouter.prototype.showMultiSelector = function(title, options, selectText, selectCb, saveText, saveCb, cancelText, cancelCb, closeCb, verticalNavIndex = -1) {
     if (document.activeElement.tagName === 'INPUT') {
       document.activeElement.blur();
     }
@@ -294,11 +295,11 @@ const KaiRouter = (function() {
     this.hideBottomSheet();
   }
 
-  KaiRouter.prototype.showDatePicker = function(year, month, day = 1, selectCb) {
+  KaiRouter.prototype.showDatePicker = function(year, month, day = 1, selectCb, closeCb) {
     if (document.activeElement.tagName === 'INPUT') {
       document.activeElement.blur();
     }
-    const date_picker = Kai.createDatePicker(year, month, day, selectCb, this);
+    const date_picker = Kai.createDatePicker(year, month, day, selectCb, closeCb, this);
     this.showBottomSheet(date_picker);
   }
 
@@ -306,11 +307,11 @@ const KaiRouter = (function() {
     this.hideBottomSheet();
   }
 
-  KaiRouter.prototype.showTimePicker = function(hour, minute, is12H = true, selectCb) {
+  KaiRouter.prototype.showTimePicker = function(hour, minute, is12H = true, selectCb, closeCb) {
     if (document.activeElement.tagName === 'INPUT') {
       document.activeElement.blur();
     }
-    const time_picker = Kai.createTimePicker(hour, minute, is12H, selectCb, this);
+    const time_picker = Kai.createTimePicker(hour, minute, is12H, selectCb, closeCb, this);
     this.showBottomSheet(time_picker);
   }
 
