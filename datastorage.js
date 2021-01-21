@@ -2,16 +2,19 @@ const DataStorage = (function() {
 
   const SDCARD = navigator.getDeviceStorage('sdcard');
 
-  function DataStorage(onChange) {
-    this.init(onChange);
+  function DataStorage(onChange, onReady) {
+    this.init(onChange, onReady);
   }
 
-  DataStorage.prototype.init = function(onChange) {
+  DataStorage.prototype.init = function(onChange, onReady) {
     this.trailingSlash = '';
+    this.isReady = false;
     this.onChange = onChange;
+    this.onReady = onReady;
     this.fileRegistry = [];
-    this.documentTree = {}
-    this.groups = {}
+    this.fileAttributeRegistry = {};
+    this.documentTree = {};
+    this.groups = {};
     this.indexingStorage();
     SDCARD.addEventListener("change", (event) => {
       this.indexingStorage();
@@ -22,10 +25,15 @@ const DataStorage = (function() {
     var _this = this;
     var files = [];
     const cursor = SDCARD.enumerate('');
+    _this.isReady = false;
+    if (typeof _this.onReady === "function" ) {
+      _this.onReady(false);
+    }
     cursor.onsuccess = function() {
       if (!this.done) {
         if(cursor.result.name !== null) {
-          files.push(cursor.result.name)
+          files.push(cursor.result.name);
+          _this.fileAttributeRegistry[cursor.result.name] = { type: cursor.result.type, size: cursor.result.size, lastModified: cursor.result.lastModified };
           this.continue();
         }
       } else {
@@ -35,10 +43,18 @@ const DataStorage = (function() {
         if (_this.onChange != undefined) {
           _this.onChange(_this.fileRegistry, _this.documentTree, _this.groups);
         }
+        _this.isReady = true;
+        if (typeof _this.onReady === "function" ) {
+          _this.onReady(true);
+        }
       }
     }
     cursor.onerror = function () { 
-      console.warn("No file found: " + this.error); 
+      console.warn("No file found: " + this.error);
+      _this.isReady = true;
+      if (typeof _this.onReady === "function" ) {
+        _this.onReady(true);
+      }
     }
   }
 

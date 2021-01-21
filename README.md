@@ -8,15 +8,15 @@
 
 2) Create new project, https://developers.kloudless.com/new
 
-3) This is sample preview of your dashboard, https://i.imgur.com/cVpNb3N.png
+3) This is preview of your dashboard, https://i.imgur.com/cVpNb3N.png
 
 4) Click 'Walkthrough'(refer 3.) to add cloud storages to your account
 
-5) Click 'App Details'(refer 3.) to copy 'App-Wide API Keys' then paste the key into txt file. Rename the txt file to 'kloudless.txt'. Lastly, copy 'kloudless.txt' to root directory of your sd card.
+5) Click 'App Details'(refer 3.) to copy 'App-Wide API Keys' then paste the key into 'kloudless.txt'. Lastly, copy 'kloudless.txt' to root directory of your sd card.
 
 !!! Goto Settings > Storage > Default Media Storage & Choose SD CARD
 
-6) Open 'Kloud File Manager', left click 'Menu' then select 'Kloudless', next select 'Setup API Key'. If success, 4 new menu will appear:
+6) Open 'Kloud File Manager', left click 'Menu' then select 'Kloudless', next select 'Setup API Key'. If successful, 4 new menu will available:
 
 - Default Cloud Storage(set default cloud storage)
 
@@ -25,6 +25,8 @@
 - Fix Missing Files(Remove invalid files from database)
 
 - Reset(reset sync database)
+
+!!! You can delete 'kloudless.txt' after successful login
 
 _______________________________________________________________________________
 

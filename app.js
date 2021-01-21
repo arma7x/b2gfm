@@ -3,8 +3,23 @@ window.addEventListener("load", function() {
   localforage.setDriver(localforage.LOCALSTORAGE);
 
   document.addEventListener('visibilitychange', function(ev) {
-    console.log(`Tab state : ${document.visibilityState}`, `CPU cpuSleepAllowed : ${POWER.cpuSleepAllowed}`);
+    console.log(`Tab state : ${document.visibilityState}`);
   });
+
+  function humanFileSize(bytes, si=false, dp=1) {
+    const thresh = si ? 1000 : 1024;
+    if (Math.abs(bytes) < thresh) {
+      return bytes + ' Byte';
+    }
+    const units = si  ? ['kB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'] : ['KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB', 'ZiB', 'YiB'];
+    let u = -1;
+    const r = Math.pow(10, dp);
+    do {
+      bytes /= thresh;
+      ++u;
+    } while (Math.round(Math.abs(bytes) * r) / r >= thresh && u < units.length - 1);
+    return bytes.toFixed(dp) + ' ' + units[u];
+  }
 
   const state = new KaiState({
     'fileRegistry': [],
@@ -64,13 +79,6 @@ window.addEventListener("load", function() {
       failCb(err);
     });
   }
-
-  function onChange(fileRegistry, documentTree, groups) {
-    state.setState('fileRegistry', fileRegistry);
-    state.setState('documentTree', documentTree);
-  }
-
-  const DS = new DataStorage(onChange);
 
   const newFolderPage = function(paths) {
     return new Kai({
@@ -383,7 +391,7 @@ window.addEventListener("load", function() {
                       if (this.data.currentFolderContents[x].type === 'file' && this.data.currentFolderContents[x].id === y) {
                         this.data.currentFolderContents[x]['local_path'] = objs[y];
                         this.data.currentFolderContents[x]['sync'] = true;
-                        this.data.currentFolderContents[x]['icon'] = '&#9733';
+                        this.data.currentFolderContents[x]['icon'] = 'local.png';
                         delete objs[y];
                         break;
                       }
@@ -411,11 +419,21 @@ window.addEventListener("load", function() {
                   this.data.currentFolderContents = []
                   for (var x in response.data.objects) {
                     response.data.objects[x]['text'] = response.data.objects[x]['name']
-                    response.data.objects[x]['icon'] = '&#128240'
+                    response.data.objects[x]['icon'] = 'unknown.png'
                     if (response.data.objects[x].type === 'folder') {
-                      response.data.objects[x]['icon'] = '&#128193'
+                      response.data.objects[x]['icon'] = 'folder.png'
                     } else if (response.data.objects[x].type === 'file') {
                       response.data.objects[x]['sync'] = false;
+                      const n2 = response.data.objects[x].mime_type.split('/');
+                      if (n2[0] === 'text') {
+                        response.data.objects[x]['icon'] = "text.png";
+                      } else if (n2[0] === 'audio') {
+                        response.data.objects[x]['icon'] = "audio.png";
+                      } else if (n2[0] === 'video') {
+                        response.data.objects[x]['icon'] = "video.png";
+                      } else if (n2[0] === 'image') {
+                        response.data.objects[x]['icon'] = "image.png";
+                      }
                     }
                     this.data.currentFolderContents.push(response.data.objects[x])
                   }
@@ -438,9 +456,10 @@ window.addEventListener("load", function() {
                   this.$router.hideLoading();
                 });
               },
-              selected: function(val) {
-                if (val.type === 'folder') {
-                  this.methods.navigate(val.id, (data) => {
+              selected: function() {
+                var current = this.data.currentFolderContents[this.data.currentFocus[this.data.previousPaths.length]];
+                if (current.type === 'folder') {
+                  this.methods.navigate(current.id, (data) => {
                     this.data.currentPaths.push(data.name);
                     this.data.previousPaths.push(this.data.parent)
                     this.data.currentFocus.push(0);
@@ -465,7 +484,7 @@ window.addEventListener("load", function() {
                 return true;
               }
             },
-            softKeyText: { left: 'Exit', center: 'OPEN', right: 'Option' },
+            softKeyText: { left: 'Exit', center: '', right: '' },
             softKeyListener: {
               left: function() {
                 this.$router.pop();
@@ -595,12 +614,12 @@ window.addEventListener("load", function() {
                       });
                     } else if (selected.text === 'Properties') {
                       var text = '';
-                      text += 'ID: ' + current.id + '</br>';
-                      text += 'Name: ' + current.name + '</br>';
-                      text += 'Sync: ' + current.sync + '</br>';
-                      text += 'Modified: ' + new Date(current.modified).toLocaleString() + '</br>';
-                      text += 'MIME: ' + current.mime_type + '</br>';
-                      text += 'Size: ' + current.size + 'byte</br>';
+                      text += 'ID: <small>' + current.id + '</small></br>';
+                      text += 'Name: <small>' + current.name + '</small></br>';
+                      text += 'Sync: <small>' + current.sync + '</small></br>';
+                      text += 'Modified: <small>' + new Date(current.modified).toLocaleString() + '</small></br>';
+                      text += 'MIME: <small>' + current.mime_type + '</small></br>';
+                      text += 'Size: <small>' + humanFileSize(current.size) + '</small></br>';
                       this.$router.showDialog('Properties', text, null, 'Close', undefined, ' ', undefined, undefined);
                     }
                   }, undefined, 0);
@@ -675,6 +694,11 @@ window.addEventListener("load", function() {
       this.$router.setHeaderTitle('File Manager');
       this.$state.addGlobalListener(this.methods.listenState);
       this.methods.navigate();
+      if (DS.isReady) {
+        this.$router.hideLoading();
+      } else {
+        this.$router.showLoading();
+      }
     },
     unmounted: function() {
       this.$state.removeGlobalListener(this.methods.listenState);
@@ -690,17 +714,38 @@ window.addEventListener("load", function() {
             documentTree = documentTree[this.data.paths[x]]
           }
         }
+        this.$router.setHeaderTitle('File Manager(' + this.data.paths.length.toString() + ')');
         this.data.currentFolderContents = []
         for (var x in documentTree) {
           var type = 'FILE'
           var isFile = true
-          var icon = '&#128240'
+          var icon = "unknown.png" // &#128240
+          var launcher = null;
           if (typeof documentTree[x] === 'object') {
             type = 'OBJECT'
             isFile = false;
-            icon = '&#128193'
+            icon = "folder.png"
+          } else {
+            const n = DS.trailingSlash + [...this.data.paths, x].join('/')
+            const n1 = DS.fileAttributeRegistry[n];
+            if (n1) {
+              const n2 = n1.type.split('/');
+              if (n2[0] === 'text') {
+                icon = "text.png";
+                launcher = 'text';
+              } else if (n2[0] === 'audio') {
+                icon = "audio.png";
+                launcher = 'audio';
+              } else if (n2[0] === 'video') {
+                icon = "video.png";
+                launcher = 'video';
+              } else if (n2[0] === 'image') {
+                icon = "image.png";
+                launcher = 'image';
+              }
+            }
           }
-          this.data.currentFolderContents.push({text: x, type, icon, isFile, sync: false})
+          this.data.currentFolderContents.push({text: x, type, icon, isFile, sync: false, launcher: launcher})
         }
         if (this.data.currentFocus[this.data.paths.length] >= this.data.currentFolderContents.length) {
           this.data.currentFocus[this.data.paths.length] = this.data.currentFolderContents.length - 1;
@@ -718,7 +763,7 @@ window.addEventListener("load", function() {
                 if (objs[j] === path) {
                   this.data.currentFolderContents[i]['kloudless_id'] = j;
                   this.data.currentFolderContents[i]['sync'] = true;
-                  this.data.currentFolderContents[i]['icon'] = '&#9733';
+                  this.data.currentFolderContents[i]['icon'] = 'cloud.png';
                   delete objs[j];
                   break;
                 }
@@ -729,7 +774,11 @@ window.addEventListener("load", function() {
           if (current == null) {
             this.$router.setSoftKeyText('Menu', '', '');
           } else if (current.type === 'FILE') {
-            this.$router.setSoftKeyText('Menu', '', 'Option');
+            if (current.launcher !== null) {
+              this.$router.setSoftKeyText('Menu', 'Open', 'Option');
+            } else {
+              this.$router.setSoftKeyText('Menu', '', 'Option');
+            }
           } else if (current.type === 'OBJECT') {
             var txt = this.data.copyPath !== '' || this.data.cutPath !== '' ? 'Option' : '';
             this.$router.setSoftKeyText('Menu', 'OPEN', txt);
@@ -741,12 +790,36 @@ window.addEventListener("load", function() {
           this.$router.showToast(err.toString())
         });
       },
-      selected: function(val) {
-        if (val.type === 'OBJECT') {
-          this.data.paths.push(val.text);
-          this.data.currentFocus.push(0);
-          this.verticalNavIndex = this.data.currentFocus[this.data.paths.length];
-          this.methods.navigate();
+      selected: function() {
+        var current = this.data.currentFolderContents[this.data.currentFocus[this.data.paths.length]];
+        if (current) {
+          if (current.type === 'OBJECT') {
+            this.data.paths.push(current.text);
+            this.data.currentFocus.push(0);
+            this.verticalNavIndex = this.data.currentFocus[this.data.paths.length];
+            this.methods.navigate();
+          } else if (current.type === 'FILE') {
+            if (current.launcher === 'text') {
+              this.$router.showToast('Coming soon')
+            } else if (current.launcher === 'audio' || current.launcher === 'video' || current.launcher === 'image') {
+              var type = {
+                'audio': 'audio/mpeg',
+                'video': 'video/mp4',
+                'image': 'image/jpeg',
+              };
+              DS.getFile([...this.data.paths, current.text].join('/'), (_file) => {
+                var _launcher = new MozActivity({
+                  name: "open",
+                  data: {
+                    blob: _file,
+                    type: type[current.launcher]
+                  }
+                });
+              }, (_err) => {
+                console.log(_err);
+              });
+            }
+          }
         }
       },
       deleteFileOrFolder: function(current) {
@@ -802,7 +875,23 @@ window.addEventListener("load", function() {
           } else if (selected.text === 'Read Me') {
             this.$router.push('readMe');
           }
-        }, undefined, 0);
+        }, () => {
+          var current = this.data.currentFolderContents[this.data.currentFocus[this.data.paths.length]];
+          setTimeout(() => {
+            if (current == null) {
+              this.$router.setSoftKeyText('Menu', '', '');
+            } else if (current.type === 'FILE') {
+              if (current.launcher !== null) {
+                this.$router.setSoftKeyText('Menu', 'Open', 'Option');
+              } else {
+                this.$router.setSoftKeyText('Menu', '', 'Option');
+              }
+            } else if (current.type === 'OBJECT') {
+              var txt = this.data.copyPath !== '' || this.data.cutPath !== '' ? 'Option' : '';
+              this.$router.setSoftKeyText('Menu', 'OPEN', txt);
+            }
+          }, 100);
+        }, 0);
       },
       center: function() {
         const listNav = document.querySelectorAll(this.verticalNavClass);
@@ -1166,17 +1255,32 @@ window.addEventListener("load", function() {
             DS.getFile([...JSON.parse(JSON.stringify(this.data.paths)), current.text].join('/'), (properties) => {
               var text = '';
               if (current.kloudless_id) {
-                text += 'ID: ' + current.kloudless_id + '</br>';
+                text += 'ID: <small>' + current.kloudless_id + '</small></br>';
               }
-              text += 'Name: ' + current.text + '</br>';
-              text += 'Sync: ' + current.sync + '</br>';
-              text += 'Modified: ' + new Date(properties.lastModifiedDate).toLocaleString() + '</br>';
-              text += 'MIME: ' + properties.type + '</br>';
-              text += 'Size: ' + properties.size + 'byte</br>';
+              text += 'Name: <small>' + current.text + '</small></br>';
+              text += 'Sync: <small>' + current.sync + '</small></br>';
+              text += 'Modified: <small>' + new Date(properties.lastModifiedDate).toLocaleString() + '</small></br>';
+              text += 'MIME: <small>' + properties.type + '</small></br>';
+              text += 'Size: <small>' + humanFileSize(properties.size) + '</small></br>';
               this.$router.showDialog('Properties', text, null, 'Close', undefined, ' ', undefined, undefined);
             });
           }
-        }, undefined, 0);
+        }, () => {
+          setTimeout(() => {
+            if (current == null) {
+              this.$router.setSoftKeyText('Menu', '', '');
+            } else if (current.type === 'FILE') {
+              if (current.launcher !== null) {
+                this.$router.setSoftKeyText('Menu', 'Open', 'Option');
+              } else {
+                this.$router.setSoftKeyText('Menu', '', 'Option');
+              }
+            } else if (current.type === 'OBJECT') {
+              var txt = this.data.copyPath !== '' || this.data.cutPath !== '' ? 'Option' : '';
+              this.$router.setSoftKeyText('Menu', 'OPEN', txt);
+            }
+          }, 100);
+        }, 0);
       }
     },
     softKeyInputFocusText: {},
@@ -1189,7 +1293,11 @@ window.addEventListener("load", function() {
         if (current == null) {
           this.$router.setSoftKeyText('Menu', '', '');
         } else if (current.type === 'FILE') {
-          this.$router.setSoftKeyText('Menu', '', 'Option');
+          if (current.launcher !== null) {
+            this.$router.setSoftKeyText('Menu', 'Open', 'Option');
+          } else {
+            this.$router.setSoftKeyText('Menu', '', 'Option');
+          }
         } else if (current.type === 'OBJECT') {
           var txt = this.data.copyPath !== '' || this.data.cutPath !== '' ? 'Option' : '';
           this.$router.setSoftKeyText('Menu', 'OPEN', txt);
@@ -1205,7 +1313,11 @@ window.addEventListener("load", function() {
         if (current == null) {
           this.$router.setSoftKeyText('Menu', '', '');
         } else if (current.type === 'FILE') {
-          this.$router.setSoftKeyText('Menu', '', 'Option');
+          if (current.launcher !== null) {
+            this.$router.setSoftKeyText('Menu', 'Open', 'Option');
+          } else {
+            this.$router.setSoftKeyText('Menu', '', 'Option');
+          }
         } else if (current.type === 'OBJECT') {
           var txt = this.data.copyPath !== '' || this.data.cutPath !== '' ? 'Option' : '';
           this.$router.setSoftKeyText('Menu', 'OPEN', txt);
@@ -1223,7 +1335,9 @@ window.addEventListener("load", function() {
       title: '_readMe_'
     },
     templateUrl: document.location.origin + '/templates/read_me.html',
-    mounted: function() {},
+    mounted: function() {
+      this.$router.setHeaderTitle('Read Me');
+    },
     unmounted: function() {},
     methods: {},
     softKeyText: { left: '', center: '', right: '' },
@@ -1269,6 +1383,23 @@ window.addEventListener("load", function() {
   } catch(e) {
     console.log(e);
   }
+
+  function onChange(fileRegistry, documentTree, groups) {
+    state.setState('fileRegistry', fileRegistry);
+    state.setState('documentTree', documentTree);
+  }
+
+  function onReady(status) {
+    if (app.isMounted) {
+      if (status) {
+        app.$router.hideLoading();
+      } else {
+        app.$router.showLoading();
+      }
+    }
+  }
+
+  const DS = new DataStorage(onChange, onReady);
 
   getKaiAd({
     publisher: 'ac3140f7-08d6-46d9-aa6f-d861720fba66',

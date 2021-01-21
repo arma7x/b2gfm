@@ -328,6 +328,11 @@ h1, h2, h3, h4, h5, ul, p {
     margin-bottom: 28px;
     font-weight: bold;
     z-index: 9;
+    cursor: none;
+    pointer-events: none;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 /* ============== Separator ============== */
