@@ -449,6 +449,7 @@ window.addEventListener("load", function() {
                   } else if (current.type === 'folder') {
                     this.$router.setSoftKeyText('Exit', 'OPEN', '');
                   }
+                  this.$router.setHeaderTitle(KLOUDLESS_DEFAULT_ACCOUNT_NAME + '(' + (this.data.currentFocus.length - 1).toString() + ')');
                   this.methods.filteringSyncFiles();
                 }).catch((err) => {
                   this.$router.showToast(err.toString())
@@ -620,9 +621,31 @@ window.addEventListener("load", function() {
                       text += 'Modified: <small>' + new Date(current.modified).toLocaleString() + '</small></br>';
                       text += 'MIME: <small>' + current.mime_type + '</small></br>';
                       text += 'Size: <small>' + humanFileSize(current.size) + '</small></br>';
-                      this.$router.showDialog('Properties', text, null, 'Close', undefined, ' ', undefined, undefined);
+                      setTimeout(() => {
+                        this.$router.showDialog('Properties', text, null, 'Close', undefined, ' ', undefined, undefined, undefined, () => {
+                          setTimeout(() => {
+                            if (current == null) {
+                              this.$router.setSoftKeyText('Exit', '', '');
+                            } else if (current.type === 'file') {
+                              this.$router.setSoftKeyText('Exit', '', 'Option');
+                            } else if (current.type === 'folder') {
+                              this.$router.setSoftKeyText('Exit', 'OPEN', '');
+                            }
+                          }, 100);
+                        });
+                      }, 110);
                     }
-                  }, undefined, 0);
+                  }, () => {
+                    setTimeout(() => {
+                      if (current == null) {
+                        this.$router.setSoftKeyText('Exit', '', '');
+                      } else if (current.type === 'file') {
+                        this.$router.setSoftKeyText('Exit', '', 'Option');
+                      } else if (current.type === 'folder') {
+                        this.$router.setSoftKeyText('Exit', 'OPEN', '');
+                      }
+                    }, 100);
+                  }, 0);
                   
                 }
               }
@@ -791,7 +814,7 @@ window.addEventListener("load", function() {
         });
       },
       selected: function() {
-        var current = this.data.currentFolderContents[this.data.currentFocus[this.data.paths.length]];
+        var current = this.data.currentFolderContents[this.verticalNavIndex];
         if (current) {
           if (current.type === 'OBJECT') {
             this.data.paths.push(current.text);
@@ -876,7 +899,7 @@ window.addEventListener("load", function() {
             this.$router.push('readMe');
           }
         }, () => {
-          var current = this.data.currentFolderContents[this.data.currentFocus[this.data.paths.length]];
+          var current = this.data.currentFolderContents[this.verticalNavIndex];
           setTimeout(() => {
             if (current == null) {
               this.$router.setSoftKeyText('Menu', '', '');
@@ -900,7 +923,7 @@ window.addEventListener("load", function() {
         }
       },
       right: function() {
-        var current = this.data.currentFolderContents[this.data.currentFocus[this.data.paths.length]];
+        var current = this.data.currentFolderContents[this.verticalNavIndex];
         var options = [];
         if (this.data.copyPath !== '' || this.data.cutPath !== '') {
           options.push({ "text": "Paste into current directory"});
@@ -1262,7 +1285,24 @@ window.addEventListener("load", function() {
               text += 'Modified: <small>' + new Date(properties.lastModifiedDate).toLocaleString() + '</small></br>';
               text += 'MIME: <small>' + properties.type + '</small></br>';
               text += 'Size: <small>' + humanFileSize(properties.size) + '</small></br>';
-              this.$router.showDialog('Properties', text, null, 'Close', undefined, ' ', undefined, undefined);
+              setTimeout(() => {
+                this.$router.showDialog('Properties', text, null, 'Close', undefined, ' ', undefined, undefined, undefined, () => {
+                  setTimeout(() => {
+                    if (current == null) {
+                      this.$router.setSoftKeyText('Menu', '', '');
+                    } else if (current.type === 'FILE') {
+                      if (current.launcher !== null) {
+                        this.$router.setSoftKeyText('Menu', 'Open', 'Option');
+                      } else {
+                        this.$router.setSoftKeyText('Menu', '', 'Option');
+                      }
+                    } else if (current.type === 'OBJECT') {
+                      var txt = this.data.copyPath !== '' || this.data.cutPath !== '' ? 'Option' : '';
+                      this.$router.setSoftKeyText('Menu', 'OPEN', txt);
+                    }
+                  }, 100);
+                });
+              }, 110)
             });
           }
         }, () => {

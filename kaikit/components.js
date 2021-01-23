@@ -337,6 +337,9 @@ Kai.createOptionMenu = function(title, options, selectText, selectCb, closeCb, v
         if (typeof selectCb === 'function') {
           selectCb(data);
         }
+        if (closeCb) {
+          closeCb();
+        }
       }
     },
     softKeyText: { left: '', center: selectText || 'SELECT', right: '' },
@@ -385,6 +388,9 @@ Kai.createDialog = function(title, body, dataCb, positiveText, positiveCb, negat
         if (typeof negativeCb === 'function') {
           negativeCb(dataCb);
         }
+        if (closeCb) {
+          closeCb();
+        }
       },
       center: function() {
         if ($router) {
@@ -393,6 +399,9 @@ Kai.createDialog = function(title, body, dataCb, positiveText, positiveCb, negat
         if (typeof neutralCb === 'function') {
           neutralCb(dataCb);
         }
+        if (closeCb) {
+          closeCb();
+        }
       },
       right: function() {
         if ($router) {
@@ -400,6 +409,9 @@ Kai.createDialog = function(title, body, dataCb, positiveText, positiveCb, negat
         }
         if (typeof positiveCb === 'function') {
           positiveCb(dataCb);
+        }
+        if (closeCb) {
+          closeCb();
         }
       }
     },
@@ -460,6 +472,9 @@ Kai.createSingleSelector = function(title, options, selectText, selectCb, cancel
         if (typeof selectCb === 'function') {
           selectCb(data);
         }
+        if (closeCb) {
+          closeCb();
+        }
       }
     },
     softKeyText: { left: cancelText || 'Cancel', center: selectText || 'SELECT', right: '' },
@@ -470,6 +485,9 @@ Kai.createSingleSelector = function(title, options, selectText, selectCb, cancel
         }
         if (typeof cancelCb === 'function') {
           cancelCb(data);
+        }
+        if (closeCb) {
+          closeCb();
         }
       },
       center: function() {
@@ -557,6 +575,9 @@ Kai.createMultiSelector = function(title, options, selectText, selectCb, saveTex
         if (typeof selectCb === 'function') {
           selectCb(data);
         }
+        if (closeCb) {
+          closeCb();
+        }
       }
     },
     softKeyText: { left: cancelText || 'Cancel', center: selectText || 'SELECT', right: saveText || 'Save' },
@@ -567,6 +588,9 @@ Kai.createMultiSelector = function(title, options, selectText, selectCb, saveTex
         }
         if (typeof cancelCb === 'function') {
           cancelCb(data);
+        }
+        if (closeCb) {
+          closeCb();
         }
       },
       center: function() {
@@ -581,6 +605,9 @@ Kai.createMultiSelector = function(title, options, selectText, selectCb, saveTex
         }
         if (typeof saveCb === 'function') {
           saveCb(this.data.options);
+        }
+        if (closeCb) {
+          closeCb();
         }
       }
     },
@@ -730,6 +757,9 @@ Kai.createDatePicker = function(year, month, day = 1, selectCb, closeCb, $router
         if ($router) {
           $router.hideDatePicker();
         }
+        if (closeCb) {
+          closeCb();
+        }
       },
       center: function() {
         if ($router) {
@@ -737,6 +767,9 @@ Kai.createDatePicker = function(year, month, day = 1, selectCb, closeCb, $router
         }
         if (typeof selectCb === 'function') {
           selectCb(new Date(this.data.yearM, MONTHS.indexOf(this.data.monthM), this.data.dayM));
+        }
+        if (closeCb) {
+          closeCb();
         }
       },
       right: function() {}
@@ -918,6 +951,9 @@ Kai.createTimePicker = function(hour, minute, is12H, selectCb, closeCb, $router)
         if ($router) {
           $router.hideTimePicker();
         }
+        if (closeCb) {
+          closeCb();
+        }
       },
       center: function() {
         if ($router) {
@@ -934,6 +970,9 @@ Kai.createTimePicker = function(hour, minute, is12H, selectCb, closeCb, $router)
           const dt = new Date();
           dt.setHours(h, m, 0);
           selectCb(dt);
+        }
+        if (closeCb) {
+          closeCb();
         }
       },
       right: function() {}
