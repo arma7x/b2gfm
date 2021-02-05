@@ -333,6 +333,7 @@ h1, h2, h3, h4, h5, ul, p {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    -moz-user-select: none;
 }
 
 /* ============== Separator ============== */
@@ -357,6 +358,7 @@ h1, h2, h3, h4, h5, ul, p {
     width:  100%;
     bottom: 0;
     z-index: 9;
+    -moz-user-select: none;
 }
 
 .kui-software-key-dark {
@@ -600,8 +602,11 @@ h1, h2, h3, h4, h5, ul, p {
 }
 
 .kui-options li {
+    display: flex;
+    flex-direction: column;
+    align-items: start;
+    justify-content: center;
     height: 50px;
-    line-height: 50px;
     padding: 0 10px;
     background-color: #fff;
     white-space: nowrap;

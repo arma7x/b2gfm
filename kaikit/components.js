@@ -211,9 +211,9 @@ Kai.createLoading = function(EL, $router) {
       this.methods.hideLoading();
     },
     methods: {
-      showLoading: function() {
+      showLoading: function(freeze = true) {
         EL.classList.remove('sr-only');
-        this.data.status = true;
+        this.data.status = freeze;
       },
       hideLoading: function() {
         EL.classList.add('sr-only');
@@ -324,7 +324,7 @@ Kai.createOptionMenu = function(title, options, selectText, selectCb, closeCb, v
       <div class="kui-option-body">\
         <ul id="kui-options" class="kui-options">\
           {{#options}}\
-            <li class="optMenuNav" @click=\'selectOption({{__stringify__}})\'>{{text}}</li>\
+            <li class="optMenuNav" @click=\'selectOption({{__stringify__}})\'>{{text}}{{#subtext}}</br><small>{{subtext}}</small>{{/subtext}}</li>\
           {{/options}}\
         </ul>\
       </div>\

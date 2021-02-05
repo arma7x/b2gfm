@@ -386,11 +386,11 @@ const KaiRouter = (function() {
     this.toast.methods.showToast(text);
   }
 
-  KaiRouter.prototype.showLoading = function(text) {
-    this.loading.methods.showLoading();
+  KaiRouter.prototype.showLoading = function(freeze) {
+    this.loading.methods.showLoading(freeze);
   }
 
-  KaiRouter.prototype.hideLoading = function(text) {
+  KaiRouter.prototype.hideLoading = function() {
     this.loading.methods.hideLoading();
   }
 
