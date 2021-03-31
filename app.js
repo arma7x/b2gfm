@@ -80,6 +80,27 @@ window.addEventListener("load", function() {
     });
   }
 
+  const textViewerPage = function($router, text) {
+    $router.push(
+      new Kai({
+        name: 'textViewerPage',
+        data: {
+          title: 'textViewerPage'
+        },
+        template: '<div style="padding:4px;white-space:pre-wrap!important;word-break:break-word!important;"><style>img{width:100%;height:auto;}.kui-software-key,.kui-header{height:0px;}.kui-router-m-top{margin-top:0;}</style>' + DOMPurify.sanitize(snarkdown(text)) + '</div>',
+        mounted: function() {},
+        unmounted: function() {},
+        methods: {},
+        softKeyText: { left: '', center: '', right: '' },
+        softKeyListener: {
+          left: function() {},
+          center: function() {},
+          right: function() {}
+        }
+      })
+    );
+  }
+
   const newFolderPage = function(paths) {
     return new Kai({
       name: '_newFolderPage_',
@@ -814,6 +835,7 @@ window.addEventListener("load", function() {
         });
       },
       selected: function() {
+        var _this = this;
         var current = this.data.currentFolderContents[this.verticalNavIndex];
         if (current) {
           if (current.type === 'OBJECT') {
@@ -823,7 +845,13 @@ window.addEventListener("load", function() {
             this.methods.navigate();
           } else if (current.type === 'FILE') {
             if (current.launcher === 'text') {
-              this.$router.showToast('Coming soon')
+              DS.getFile([...this.data.paths, current.text].join('/'), (_file) => {
+                var reader = new FileReader();
+                reader.onload = (event) => {
+                  textViewerPage(this.$router, event.target.result);
+                };
+                reader.readAsText(_file);
+              }, (e) => {})
             } else if (current.launcher === 'audio' || current.launcher === 'video' || current.launcher === 'image') {
               var type = {
                 'audio': 'audio/mpeg',
@@ -846,36 +874,38 @@ window.addEventListener("load", function() {
         }
       },
       deleteFileOrFolder: function(current) {
-        this.$router.showDialog('Confirm', 'Are sure to delete ' + current.text + ' ?', this.data, 'Yes', () => {
-          if (current.type === 'OBJECT') {
-            this.$router.showLoading();
-            DS.deleteFolder(JSON.parse(JSON.stringify(this.data.paths)), current.text, (taskSuccess, taskFail, length) => {
-              this.$router.hideLoading();
-              // console.log(taskSuccess, taskFail, length);
-            }, (taskSuccess, taskFail, length) => {
-              // console.log(taskSuccess, taskFail, length);
-            });
-          } else if (current.isFile) {
-            DS.deleteFile(JSON.parse(JSON.stringify(this.data.paths)), current.text)
-            .then((res) => {
-              localforage.getItem('KLOUDLESS_DEFAULT_ACCOUNT_ID')
-              .then((KLOUDLESS_DEFAULT_ACCOUNT_ID) => {
-                localforage.getItem('KLOUDLESS_ACCOUNT_' + KLOUDLESS_DEFAULT_ACCOUNT_ID)
-                .then((objs) => {
-                  delete objs[current.kloudless_id];
-                  localforage.setItem('KLOUDLESS_ACCOUNT_' + KLOUDLESS_DEFAULT_ACCOUNT_ID, objs)
-                  .then(() => {
-                    localforage.removeItem(current.kloudless_id);
-                    this.methods.navigate();
+        setTimeout(() => {
+          this.$router.showDialog('Confirm', 'Are sure to delete ' + current.text + ' ?', this.data, 'Yes', () => {
+            if (current.type === 'OBJECT') {
+              this.$router.showLoading();
+              DS.deleteFolder(JSON.parse(JSON.stringify(this.data.paths)), current.text, (taskSuccess, taskFail, length) => {
+                this.$router.hideLoading();
+                // console.log(taskSuccess, taskFail, length);
+              }, (taskSuccess, taskFail, length) => {
+                // console.log(taskSuccess, taskFail, length);
+              });
+            } else if (current.isFile) {
+              DS.deleteFile(JSON.parse(JSON.stringify(this.data.paths)), current.text)
+              .then((res) => {
+                localforage.getItem('KLOUDLESS_DEFAULT_ACCOUNT_ID')
+                .then((KLOUDLESS_DEFAULT_ACCOUNT_ID) => {
+                  localforage.getItem('KLOUDLESS_ACCOUNT_' + KLOUDLESS_DEFAULT_ACCOUNT_ID)
+                  .then((objs) => {
+                    delete objs[current.kloudless_id];
+                    localforage.setItem('KLOUDLESS_ACCOUNT_' + KLOUDLESS_DEFAULT_ACCOUNT_ID, objs)
+                    .then(() => {
+                      localforage.removeItem(current.kloudless_id);
+                      this.methods.navigate();
+                    });
                   });
                 });
+              })
+              .catch((err) => {
+                this.$router.showToast(err.toString())
               });
-            })
-            .catch((err) => {
-              this.$router.showToast(err.toString())
-            });
-          }
-        }, 'Cancel', undefined, undefined);
+            }
+          }, 'Cancel', undefined, undefined);
+        }, 110);
       }
     },
     backKeyListener: function() {
@@ -901,17 +931,19 @@ window.addEventListener("load", function() {
         }, () => {
           var current = this.data.currentFolderContents[this.verticalNavIndex];
           setTimeout(() => {
-            if (current == null) {
-              this.$router.setSoftKeyText('Menu', '', '');
-            } else if (current.type === 'FILE') {
-              if (current.launcher !== null) {
-                this.$router.setSoftKeyText('Menu', 'Open', 'Option');
-              } else {
-                this.$router.setSoftKeyText('Menu', '', 'Option');
+            if (this.$router.stack[this.$router.stack.length - 1].name === '_main_') {
+              if (current == null) {
+                this.$router.setSoftKeyText('Menu', '', '');
+              } else if (current.type === 'FILE') {
+                if (current.launcher !== null) {
+                  this.$router.setSoftKeyText('Menu', 'Open', 'Option');
+                } else {
+                  this.$router.setSoftKeyText('Menu', '', 'Option');
+                }
+              } else if (current.type === 'OBJECT') {
+                var txt = this.data.copyPath !== '' || this.data.cutPath !== '' ? 'Option' : '';
+                this.$router.setSoftKeyText('Menu', 'OPEN', txt);
               }
-            } else if (current.type === 'OBJECT') {
-              var txt = this.data.copyPath !== '' || this.data.cutPath !== '' ? 'Option' : '';
-              this.$router.setSoftKeyText('Menu', 'OPEN', txt);
             }
           }, 100);
         }, 0);
