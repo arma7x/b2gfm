@@ -207,6 +207,7 @@ const KaiRouter = (function() {
   }
 
   KaiRouter.prototype.showBottomSheet = function(component) {
+    component.$router = this;
     document.body.style.position = '';
     component.mount('__kai_bottom_sheet__');
     this.setSoftKeyText(component.softKeyText.left, component.softKeyText.center, component.softKeyText.right);
@@ -287,7 +288,7 @@ const KaiRouter = (function() {
     if (document.activeElement.tagName === 'INPUT') {
       document.activeElement.blur();
     }
-    const multi_selector = Kai.createMultiSelector(title, options, selectText, selectCb, saveText, saveCb, cancelText, cancelCb, verticalNavIndex, this);
+    const multi_selector = Kai.createMultiSelector(title, options, selectText, selectCb, saveText, saveCb, cancelText, cancelCb, closeCb, verticalNavIndex, this);
     this.showBottomSheet(multi_selector);
   }
 

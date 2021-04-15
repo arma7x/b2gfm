@@ -853,7 +853,7 @@ Kai.createTimePicker = function(hour, minute, is12H, selectCb, closeCb, $router)
     name: 'time_picker',
     data: {
       title: 'Select Time',
-      hourT: is12H ? (hour - 1 > 0 ? twoChar(hour - 1) : '-') : (hour - 1 > 1 ? twoChar(hour) - 1 : '-'),
+      hourT: is12H ? (hour - 1 > 0 ? twoChar(hour - 1) : '-') : (hour - 1 > -1 ? twoChar(hour - 1) : '-'),
       hourM: twoChar(hour),
       hourB: is12H ? (hour + 1 < 13 ? twoChar(hour + 1) : '-') : (hour + 1 < 24 ? twoChar(hour + 1) : '-'),
       minuteT: minute - 1 < 0 ? '-' : twoChar(minute - 1),

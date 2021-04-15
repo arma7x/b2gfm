@@ -2,10 +2,6 @@ window.addEventListener("load", function() {
 
   localforage.setDriver(localforage.LOCALSTORAGE);
 
-  document.addEventListener('visibilitychange', function(ev) {
-    console.log(`Tab state : ${document.visibilityState}`);
-  });
-
   function humanFileSize(bytes, si=false, dp=1) {
     const thresh = si ? 1000 : 1024;
     if (Math.abs(bytes) < thresh) {
@@ -1473,14 +1469,24 @@ window.addEventListener("load", function() {
 
   const DS = new DataStorage(onChange, onReady);
 
-  getKaiAd({
-    publisher: 'ac3140f7-08d6-46d9-aa6f-d861720fba66',
-    app: 'kfm',
-    slot: 'kaios',
-    onerror: err => console.error(err),
-    onready: ad => {
-      ad.call('display')
+  function displayKaiAds() {
+    getKaiAd({
+      publisher: 'ac3140f7-08d6-46d9-aa6f-d861720fba66',
+      app: 'kfm',
+      slot: 'kaios',
+      onerror: err => console.error(err),
+      onready: ad => {
+        ad.call('display')
+      }
+    })
+  }
+
+  displayKaiAds();
+
+  document.addEventListener('visibilitychange', function(ev) {
+    if (document.visibilityState === 'visible') {
+      displayKaiAds();
     }
-  })
+  });
 
 });
