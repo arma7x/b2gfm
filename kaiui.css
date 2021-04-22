@@ -790,7 +790,7 @@ button.kui-btn:focus {
 @media only screen and (orientation : portrait) {
 
     .kai-container {
-      width: 240px;
+      max-width: 240px;
     }
 
     .kui-content-area {
@@ -810,7 +810,7 @@ button.kui-btn:focus {
 @media screen and (orientation: landscape) {
 
     .kai-container {
-      width: 320px;
+      max-width: 320px;
     }
 
     .kui-content-area {

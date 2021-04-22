@@ -1477,6 +1477,9 @@ window.addEventListener("load", function() {
       onerror: err => console.error(err),
       onready: ad => {
         ad.call('display')
+        setTimeout(() => {
+          document.body.style.position = '';
+        }, 1000);
       }
     })
   }

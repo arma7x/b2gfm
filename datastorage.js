@@ -16,9 +16,14 @@ const DataStorage = (function() {
     this.documentTree = {};
     this.groups = {};
     this.indexingStorage();
-    SDCARD.addEventListener("change", (event) => {
+    this._internalChangeListener = (event) => {
       this.indexingStorage();
-    });
+    }
+    SDCARD.addEventListener("change", this._internalChangeListener);
+  }
+
+  DataStorage.prototype.destroy = function() {
+    SDCARD.removeEventListener("change", this._internalChangeListener);
   }
 
   DataStorage.prototype.indexingStorage = function() {
