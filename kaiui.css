@@ -162,14 +162,17 @@ h1, h2, h3, h4, h5, ul, p {
 
 .kui-router-h-hdr {
   height: calc(100vh - 28px) !important;
+  overflow-y: hidden;
 }
 
 .kui-router-h-sk {
   height: calc(100vh - 30px) !important;
+  overflow-y: hidden;
 }
 
 .kui-router-h-hdr-sk {
   height: calc(100vh - 58px) !important;
+  overflow-y: hidden;
 }
 
 .kui-tab-h-28 {
