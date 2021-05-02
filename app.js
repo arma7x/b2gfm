@@ -724,7 +724,8 @@ window.addEventListener("load", function() {
       menu: [
         { "text": "Create new folder" },
         { "text": "Kloudless" },
-        { "text": "Read Me" }
+        { "text": "Read Me" },
+        { "text": "Kill App" }
       ]
     },
     verticalNavClass: '.mainNav',
@@ -923,6 +924,8 @@ window.addEventListener("load", function() {
             kloudlessPage(this.$router);
           } else if (selected.text === 'Read Me') {
             this.$router.push('readMe');
+          } else if (selected.text === 'Kill App') {
+            window.close();
           }
         }, () => {
           var current = this.data.currentFolderContents[this.verticalNavIndex];
