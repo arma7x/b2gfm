@@ -1,12 +1,65 @@
 const DataStorage = (function() {
 
+  const SDCARDS = navigator.getDeviceStorages('sdcard');
+
+  function getStorageNameByPath(path) {
+    var split = path.split('/')
+    if (split[0] !== '' && split[0].length > 0) {
+      return ''; // emulator
+    } else {
+      return split[1]; // realdevice
+    }
+  }
+
+  function getSDCard(name) {
+    var card;
+    for (var x in SDCARDS) {
+      if (SDCARDS[x].storageName === name) {
+        card = SDCARDS[x];
+        break;
+      }
+    }
+    return card;
+  }
+
+  function enumerate(cards, index, files, cb) {
+    const cursor = cards[index].enumerate('');
+    cursor.onsuccess = function () {
+      if (!this.done) {
+        if(cursor.result.name !== null) {
+          files.push(cursor.result);
+          this.continue();
+        }
+      } else {
+        if (cards.length === (index + 1)) {
+          cb(files);
+        } else {
+          enumerate(SDCARDS, (index + 1), files, cb);
+        }
+      }
+    }
+    cursor.onerror = (err) => {
+      console.warn(`No file found: ${err.toString()}`);
+      if (cards.length === (index + 1)) {
+        cb(files);
+      } else {
+        enumerate(SDCARDS, (index + 1), files, cb);
+      }
+    }
+  }
+
+  function getAllFiles(cb = function(x){}) {
+    var files = [];
+    enumerate(SDCARDS, 0, files, cb);
+  }
+
   const SDCARD = navigator.getDeviceStorage('sdcard');
 
   function DataStorage(onChange, onReady) {
     this.init(onChange, onReady);
   }
 
-  DataStorage.prototype.init = function(onChange, onReady) {
+  DataStorage.prototype.init = function(onChange = () => {}, onReady = () => {}) {
     this.trailingSlash = '';
     this.isReady = false;
     this.onChange = onChange;
@@ -19,48 +72,43 @@ const DataStorage = (function() {
     this._internalChangeListener = (event) => {
       this.indexingStorage();
     }
-    SDCARD.addEventListener("change", this._internalChangeListener);
+    SDCARDS.forEach((c) => {
+      c.addEventListener("change", this._internalChangeListener);
+    });
   }
 
   DataStorage.prototype.destroy = function() {
-    SDCARD.removeEventListener("change", this._internalChangeListener);
+    SDCARDS.forEach((c) => {
+      c.removeEventListener("change", this._internalChangeListener);
+    });
   }
 
   DataStorage.prototype.indexingStorage = function() {
     var _this = this;
     var files = [];
-    const cursor = SDCARD.enumerate('');
     _this.isReady = false;
     if (typeof _this.onReady === "function" ) {
       _this.onReady(false);
     }
-    cursor.onsuccess = function() {
-      if (!this.done) {
-        if(cursor.result.name !== null) {
-          files.push(cursor.result.name);
-          _this.fileAttributeRegistry[cursor.result.name] = { type: cursor.result.type, size: cursor.result.size, lastModified: cursor.result.lastModified };
-          this.continue();
-        }
-      } else {
-        _this.fileRegistry = files;
-        _this.documentTree = indexingDocuments(files, _this);
-        _this.groups = groupByType(files);
-        if (_this.onChange != undefined) {
-          _this.onChange(_this.fileRegistry, _this.documentTree, _this.groups);
-        }
-        _this.isReady = true;
-        if (typeof _this.onReady === "function" ) {
-          _this.onReady(true);
-        }
+    getAllFiles((_files) => {
+      _files.forEach((f) => {
+        files.push(f.name);
+        _this.fileAttributeRegistry[f.name] = { type: f.type, size: f.size, lastModified: f.lastModified };
+      });
+      _this.fileRegistry = files;
+      _this.documentTree = indexingDocuments(files, _this);
+      _this.groups = groupByType(files);
+      if (_this.onChange != undefined) {
+        _this.onChange(_this.fileRegistry, _this.documentTree, _this.groups);
       }
-    }
-    cursor.onerror = function () { 
-      console.warn("No file found: " + this.error);
       _this.isReady = true;
       if (typeof _this.onReady === "function" ) {
         _this.onReady(true);
       }
-    }
+      if (typeof _this.onReady === "function" ) {
+        _this.onReady(true);
+      }
+    });
   }
 
   DataStorage.prototype.getFile = function(name, success, error, getEditable) {
@@ -72,9 +120,9 @@ const DataStorage = (function() {
     var des = this.trailingSlash + [...path, name].join('/');
 
     function addFile(success, fail) {
-      var request = SDCARD.addNamed(blob, des);
+      var request = getSDCard(getStorageNameByPath(des)).addNamed(blob, des);
       request.onsuccess = function (evt) {
-        var find = SDCARD.get(evt.target.result);
+        var find = getSDCard(getStorageNameByPath(evt.target.result)).get(evt.target.result);
         find.onsuccess = function (evt2) {
           success(evt2.target.result);
         }
@@ -88,7 +136,7 @@ const DataStorage = (function() {
     }
 
     return new Promise((success, fail) => {
-      var remove = SDCARD.delete(des);
+      var remove = getSDCard(getStorageNameByPath(des)).delete(des);
       remove.onsuccess = function () {
         addFile(success, fail);
       }
@@ -101,12 +149,12 @@ const DataStorage = (function() {
   DataStorage.prototype.copyFile = function(path, name, to, isCut) {
     var _this = this;
     return new Promise((success, fail) => {
-      this.getFile(this.trailingSlash + [...path, name].join('/'), function(res) {
+      this.getFile([...path, name].join('/'), function(res) {
         var des = _this.trailingSlash + to + "/" + name;
         if (to.length == 0 || to === '') {
           des = _this.trailingSlash + name;
         }
-        var request = SDCARD.addNamed(res, des);
+        var request = getSDCard(getStorageNameByPath(des)).addNamed(res, des);
         request.onsuccess = function (result) {
           success(result);
           if (isCut === true) {
@@ -139,7 +187,8 @@ const DataStorage = (function() {
         fail("NoModificationAllowedError");
         return
       }
-      var request = SDCARD.delete(_this.trailingSlash + path.join('/'));
+      const des = _this.trailingSlash + path.join('/');
+      var request = getSDCard(getStorageNameByPath(des)).delete(des);
       request.onsuccess = function(res) {
         success(res);
       }
@@ -168,7 +217,8 @@ const DataStorage = (function() {
         return
       }
       path.push(".index")
-      var request = SDCARD.addNamed(file, _this.trailingSlash + path.join('/'));
+      const des = _this.trailingSlash + path.join('/');
+      var request = getSDCard(getStorageNameByPath(des)).addNamed(file, des);
       request.onsuccess = function(res) {
         success(res);
       }
@@ -220,7 +270,7 @@ const DataStorage = (function() {
         if (to.length == 0 || to === '') {
           des = _this.trailingSlash + pathName;
         }
-        var request = SDCARD.addNamed(res, des);
+        var request = getSDCard(getStorageNameByPath(des)).addNamed(res, des);
         request.onsuccess = function (result) {
           taskSuccess += 1;
           if (typeof progressCb === 'function') {
@@ -290,7 +340,8 @@ const DataStorage = (function() {
     }
     getFiles(dir);
     files.forEach((filePath) => {
-      var request = SDCARD.delete(_this.trailingSlash + filePath);
+      const des = _this.trailingSlash + filePath;
+      var request = getSDCard(getStorageNameByPath(des)).delete(des);
       request.onsuccess = function(res) {
         taskSuccess += 1;
         if (typeof progressCb === 'function') {
@@ -315,9 +366,9 @@ const DataStorage = (function() {
   function getFile(name, success, error, getEditable) {
     var request;
     if (getEditable === true) {
-      request = SDCARD.getEditable(name);
+      request = getSDCard(getStorageNameByPath(name)).getEditable(name);
     } else {
-      request = SDCARD.get(name);
+      request = getSDCard(getStorageNameByPath(name)).get(name);
     }
     request.onsuccess = function () {
       if (success !== undefined) {
@@ -349,10 +400,7 @@ const DataStorage = (function() {
     files.forEach(function(element) {
       if (element[0] === '/') {
         element = element.replace('/', '');
-        _this.trailingSlash = '/'
-        var elementArray = element.split('/');
-        _this.trailingSlash += elementArray.shift() + '/';
-        element = elementArray.join('/');
+        _this.trailingSlash = '/';
       }
       var folder = element.split('/')[0] === '' ? 'root' : element.split('/')[0];
       docTree = getChild(element.split('/'), docTree, folder, element);

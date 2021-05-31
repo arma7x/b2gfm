@@ -1,7 +1,7 @@
 {
-  "version": "1.2.1",
-  "name": "Kloud File Manager",
-  "description": "File Manager & Kloudless app(unofficial) for for KaiOS",
+  "version": "1.3.0",
+  "name": "K-File Manager",
+  "description": "K-File Manager for for KaiOS",
   "launch_path": "/index.html",
   "theme": "#873eff",
   "theme_color": "#873eff",
@@ -29,9 +29,9 @@
   },
   "locales": {
     "en-US": {
-      "name": "Kloud File Manager",
-      "subtitle": "File Manager & Kloudless app(unofficial) for for KaiOS",
-      "description": "File Manager & Kloudless app(unofficial) for for KaiOS"
+      "name": "K-File Manager",
+      "subtitle": "K-File Manager for for KaiOS",
+      "description": "K-File Manager for for KaiOS"
     }
   },
   "default_locale": "en-US"
