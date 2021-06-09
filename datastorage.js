@@ -218,12 +218,17 @@ const DataStorage = (function() {
       }
       path.push(".index")
       const des = _this.trailingSlash + path.join('/');
-      var request = getSDCard(getStorageNameByPath(des)).addNamed(file, des);
-      request.onsuccess = function(res) {
-        success(res);
-      }
-      request.onerror = function(err) {
-        fail(err);
+      var request = getSDCard(getStorageNameByPath(des));
+      if (request == null) {
+        fail("Unable to create folder on root path");
+      } else {
+        request.addNamed(file, des);
+        request.onsuccess = function(res) {
+          success(res);
+        }
+        request.onerror = function(err) {
+          fail(err);
+        }
       }
     });
   }

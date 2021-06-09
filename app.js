@@ -27,7 +27,7 @@ window.addEventListener("load", function() {
         data: {
           title: 'textViewerPage'
         },
-        template: '<div style="padding:4px;white-space:pre-wrap!important;word-break:break-word!important;"><style>img{width:100%;height:auto;}.kui-software-key,.kui-header{height:0px;}.kui-router-m-top{margin-top:0;}</style>' + DOMPurify.sanitize(snarkdown(text)) + '</div>',
+        template: '<div style="padding:4px;font-size: 75%;white-space:pre-wrap!important;word-break:break-word!important;"><style>.kui-software-key{height:0px}#__kai_router__{height:266px!important;}.kui-router-m-bottom{margin-bottom:0px!important;}</style>' + DOMPurify.sanitize(snarkdown(text)) + '</div>',
         mounted: function() {},
         unmounted: function() {},
         methods: {},
@@ -36,6 +36,10 @@ window.addEventListener("load", function() {
           left: function() {},
           center: function() {},
           right: function() {}
+        },
+        dPadNavListener: {
+          arrowRight: function() {},
+          arrowLeft: function() {},
         }
       })
     );
@@ -182,6 +186,9 @@ window.addEventListener("load", function() {
         if (this.data.currentFocus[this.data.paths.length] >= this.data.currentFolderContents.length) {
           this.data.currentFocus[this.data.paths.length] = this.data.currentFolderContents.length - 1;
           this.verticalNavIndex = this.data.currentFocus[this.data.paths.length];
+        }
+        if (this.data.currentFolderContents.length > 0 && this.verticalNavIndex == -1) {
+          this.verticalNavIndex = 0;
         }
         var current = this.data.currentFolderContents[this.verticalNavIndex];
         if (current == null) {
