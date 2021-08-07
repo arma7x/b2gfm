@@ -97,17 +97,19 @@ const DataStorage = (function() {
       });
       _this.fileRegistry = files;
       _this.documentTree = indexingDocuments(files, _this);
-      _this.groups = groupByType(files);
-      if (_this.onChange != undefined) {
-        _this.onChange(_this.fileRegistry, _this.documentTree, _this.groups);
-      }
-      _this.isReady = true;
-      if (typeof _this.onReady === "function" ) {
-        _this.onReady(true);
-      }
-      if (typeof _this.onReady === "function" ) {
-        _this.onReady(true);
-      }
+      groupByType(files, function(grouped) {
+        _this.groups = grouped;
+          if (_this.onChange != undefined) {
+          _this.onChange(_this.fileRegistry, _this.documentTree, _this.groups);
+        }
+        _this.isReady = true;
+        if (typeof _this.onReady === "function" ) {
+          _this.onReady(true);
+        }
+        if (typeof _this.onReady === "function" ) {
+          _this.onReady(true);
+        }
+      });
     });
   }
 
@@ -222,11 +224,11 @@ const DataStorage = (function() {
       if (request == null) {
         fail("Unable to create folder on root path");
       } else {
-        request.addNamed(file, des);
-        request.onsuccess = function(res) {
+        const req = request.addNamed(file, des);
+        req.onsuccess = function(res) {
           success(res);
         }
-        request.onerror = function(err) {
+        req.onerror = function(err) {
           fail(err);
         }
       }
@@ -413,16 +415,16 @@ const DataStorage = (function() {
     return docTree;
   }
 
-  function groupByType(files) {
+  function groupByType(files, cb = ()=>{}) {
     var _taskLength = files.length;
     var _taskFinish = 0;
     var _groups = {};
     files.forEach(function(element) {
       getFile(element, function(file) {
-        var type = 'Unknown'
+        var type = 'unknown'
         if (file.type === '') {
           var mime = file.name.split('.');
-          if (mime[mime.length - 1] !== '') {
+          if (mime.length > 1 && mime[mime.length - 1] !== '') {
             type = mime[mime.length - 1]
           }
           if (_groups[type] == undefined) {
@@ -437,10 +439,15 @@ const DataStorage = (function() {
         }
         _groups[type].push(file.name);
         _taskFinish++;
+        if (_taskFinish === _taskLength) {
+          cb(_groups);
+        }
       });
     })
     return _groups;
   }
+
+  DataStorage.prototype.__getFile__ = getFile;
 
   return DataStorage;
 })();

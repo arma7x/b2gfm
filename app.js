@@ -1,5 +1,27 @@
 window.addEventListener("load", function() {
 
+  const pushLocalNotification = function(text) {
+    window.Notification.requestPermission().then(function(result) {
+      var notification = new window.Notification(text);
+        notification.onclick = function(event) {
+          if (window.navigator.mozApps) {
+            var request = window.navigator.mozApps.getSelf();
+            request.onsuccess = function() {
+              if (request.result) {
+                notification.close();
+                request.result.launch();
+              }
+            };
+          } else {
+            window.open(document.location.origin, '_blank');
+          }
+        }
+        notification.onshow = function() {
+          notification.close();
+        }
+    });
+  }
+
   function humanFileSize(bytes, si=false, dp=1) {
     const thresh = si ? 1000 : 1024;
     if (Math.abs(bytes) < thresh) {
@@ -45,68 +67,6 @@ window.addEventListener("load", function() {
     );
   }
 
-  const newFolderPage = function(paths) {
-    return new Kai({
-      name: '_newFolderPage_',
-      data: {
-        title: '_newFolderPage_',
-        paths: paths
-      },
-      verticalNavClass: '.newFolderPageNav',
-      templateUrl: document.location.origin + '/templates/new_folder.html',
-      mounted: function() {
-        this.$router.setHeaderTitle('New Folder');
-      },
-      unmounted: function() {},
-      methods: {
-        createNewFolder: function() {
-          var name = document.getElementById('name');
-          if (name.value == '') {
-            this.$router.showToast('Please enter folder name');
-            return
-          }
-          DS.newFolder(JSON.parse(JSON.stringify(this.data.paths)), name.value)
-          .then((res) => {
-            this.$router.showToast(res.target.result);
-            this.$router.pop();
-          })
-          .catch((err) => {
-            this.$router.showToast(err.toString());
-          });
-        }
-      },
-      softKeyInputFocusText: { right: 'Done' },
-      softKeyInputFocusListener: {
-        right: function() {
-          document.activeElement.blur();
-        }
-      },
-      softKeyText: { left: 'Cancel', center: '', right: 'OK' },
-      softKeyListener: {
-        left: function() {
-          this.$router.pop();
-        },
-        right: function() {
-          this.methods.createNewFolder();
-        }
-      },
-      dPadNavListener: {
-        arrowUp: function() {
-          this.navigateListNav(-1);
-        },
-        arrowRight: function() {
-          this.navigateTabNav(-1);
-        },
-        arrowDown: function() {
-          this.navigateListNav(1);
-        },
-        arrowLeft: function() {
-          this.navigateTabNav(1);
-        },
-      }
-    });
-  }
-
   const mainPage = new Kai({
     name: '_main_',
     data: {
@@ -119,6 +79,7 @@ window.addEventListener("load", function() {
       pasteType: '',
       menu: [
         { "text": "Create new folder" },
+        { "text": "Add .nomedia" },
         { "text": "Read Me" },
         { "text": "Kill App" }
       ]
@@ -190,19 +151,7 @@ window.addEventListener("load", function() {
         if (this.data.currentFolderContents.length > 0 && this.verticalNavIndex == -1) {
           this.verticalNavIndex = 0;
         }
-        var current = this.data.currentFolderContents[this.verticalNavIndex];
-        if (current == null) {
-          this.$router.setSoftKeyText('Menu', '', '');
-        } else if (current.type === 'FILE') {
-          if (current.launcher !== null) {
-            this.$router.setSoftKeyText('Menu', 'Open', 'Option');
-          } else {
-            this.$router.setSoftKeyText('Menu', '', 'Option');
-          }
-        } else if (current.type === 'OBJECT') {
-          var txt = this.data.copyPath !== '' || this.data.cutPath !== '' ? 'Option' : '';
-          this.$router.setSoftKeyText('Menu', 'OPEN', txt);
-        }
+        this.methods.renderSoftKey();
         this.render()
       },
       selected: function() {
@@ -266,6 +215,21 @@ window.addEventListener("load", function() {
             }
           }, 'Cancel', undefined, undefined);
         }, 110);
+      },
+      renderSoftKey: function() {
+        var current = this.data.currentFolderContents[this.verticalNavIndex];
+        if (current == null) {
+          this.$router.setSoftKeyText('Menu', '', '');
+        } else if (current.type === 'FILE') {
+          if (current.launcher !== null) {
+            this.$router.setSoftKeyText('Menu', 'Open', 'Option');
+          } else {
+            this.$router.setSoftKeyText('Menu', '', 'Option');
+          }
+        } else if (current.type === 'OBJECT') {
+          var txt = this.data.copyPath !== '' || this.data.cutPath !== '' ? 'Option' : '';
+          this.$router.setSoftKeyText('Menu', 'OPEN', txt);
+        }
       }
     },
     backKeyListener: function() {
@@ -282,28 +246,89 @@ window.addEventListener("load", function() {
       left: function() {
         this.$router.showOptionMenu('Menu', this.data.menu, 'Select', (selected) => {
           if (selected.text === 'Create new folder') {
-            this.$router.push(newFolderPage(JSON.parse(JSON.stringify(this.data.paths))));
+            const folderDialog = Kai.createDialog('Create new folder', '<div><input id="folder-input" placeholder="Enter folder name" class="kui-input" type="text" /></div>', null, '', undefined, '', undefined, '', undefined, undefined, this.$router);
+            folderDialog.mounted = () => {
+              setTimeout(() => {
+                setTimeout(() => {
+                  this.$router.setSoftKeyText('Cancel' , '', 'OK');
+                  FOLDER_INPUT.focus();
+                }, 103);
+                const FOLDER_INPUT = document.getElementById('folder-input');
+                if (!FOLDER_INPUT) {
+                  return;
+                }
+                FOLDER_INPUT.focus();
+                FOLDER_INPUT.addEventListener('keydown', (evt) => {
+                  switch (evt.key) {
+                    case 'Backspace':
+                    case 'EndCall':
+                      if (document.activeElement.value.length === 0) {
+                        this.$router.hideBottomSheet();
+                        setTimeout(() => {
+                          this.methods.renderSoftKey();
+                          FOLDER_INPUT.blur();
+                        }, 100);
+                      }
+                      break
+                    case 'SoftRight':
+                      this.$router.hideBottomSheet();
+                      setTimeout(() => {
+                        this.methods.renderSoftKey();
+                        FOLDER_INPUT.blur();
+                        if (FOLDER_INPUT.value == '') {
+                          pushLocalNotification('Please enter folder name');
+                          return
+                        }
+                        DS.newFolder(JSON.parse(JSON.stringify(this.data.paths)), FOLDER_INPUT.value)
+                        .then((res) => {
+                          pushLocalNotification(res.target.result);
+                        })
+                        .catch((err) => {
+                          pushLocalNotification(err.toString());
+                        });
+                      }, 100);
+                      break
+                    case 'SoftLeft':
+                      this.$router.hideBottomSheet();
+                      setTimeout(() => {
+                        this.methods.renderSoftKey();
+                        FOLDER_INPUT.blur();
+                      }, 100);
+                      break
+                  }
+                });
+              });
+            }
+            folderDialog.dPadNavListener = {
+              arrowUp: function() {
+                const FOLDER_INPUT = document.getElementById('folder-input');
+                FOLDER_INPUT.focus();
+              },
+              arrowDown: function() {
+                const FOLDER_INPUT = document.getElementById('folder-input');
+                FOLDER_INPUT.focus();
+              }
+            }
+            this.$router.showBottomSheet(folderDialog);
+            //this.$router.push(newFolderPage(JSON.parse(JSON.stringify(this.data.paths))));
           } else if (selected.text === 'Read Me') {
             this.$router.push('readMe');
+          } else if (selected.text === 'Add .nomedia') {
+            const blob = new Blob([], {type : 'application/text'});
+            DS.addFile(this.data.paths, '.nomedia', blob)
+            .then((res) => {
+              pushLocalNotification('Done');
+            })
+            .catch((err) => {
+              pushLocalNotification(err.toString());
+            });
           } else if (selected.text === 'Kill App') {
             window.close();
           }
         }, () => {
-          var current = this.data.currentFolderContents[this.verticalNavIndex];
           setTimeout(() => {
             if (this.$router.stack[this.$router.stack.length - 1].name === '_main_') {
-              if (current == null) {
-                this.$router.setSoftKeyText('Menu', '', '');
-              } else if (current.type === 'FILE') {
-                if (current.launcher !== null) {
-                  this.$router.setSoftKeyText('Menu', 'Open', 'Option');
-                } else {
-                  this.$router.setSoftKeyText('Menu', '', 'Option');
-                }
-              } else if (current.type === 'OBJECT') {
-                var txt = this.data.copyPath !== '' || this.data.cutPath !== '' ? 'Option' : '';
-                this.$router.setSoftKeyText('Menu', 'OPEN', txt);
-              }
+              this.methods.renderSoftKey();
             }
           }, 100);
         }, 0);
@@ -409,18 +434,7 @@ window.addEventListener("load", function() {
               setTimeout(() => {
                 this.$router.showDialog('Properties', text, null, 'Close', undefined, ' ', undefined, undefined, undefined, () => {
                   setTimeout(() => {
-                    if (current == null) {
-                      this.$router.setSoftKeyText('Menu', '', '');
-                    } else if (current.type === 'FILE') {
-                      if (current.launcher !== null) {
-                        this.$router.setSoftKeyText('Menu', 'Open', 'Option');
-                      } else {
-                        this.$router.setSoftKeyText('Menu', '', 'Option');
-                      }
-                    } else if (current.type === 'OBJECT') {
-                      var txt = this.data.copyPath !== '' || this.data.cutPath !== '' ? 'Option' : '';
-                      this.$router.setSoftKeyText('Menu', 'OPEN', txt);
-                    }
+                    this.methods.renderSoftKey();
                   }, 100);
                 });
               }, 110)
@@ -428,18 +442,7 @@ window.addEventListener("load", function() {
           }
         }, () => {
           setTimeout(() => {
-            if (current == null) {
-              this.$router.setSoftKeyText('Menu', '', '');
-            } else if (current.type === 'FILE') {
-              if (current.launcher !== null) {
-                this.$router.setSoftKeyText('Menu', 'Open', 'Option');
-              } else {
-                this.$router.setSoftKeyText('Menu', '', 'Option');
-              }
-            } else if (current.type === 'OBJECT') {
-              var txt = this.data.copyPath !== '' || this.data.cutPath !== '' ? 'Option' : '';
-              this.$router.setSoftKeyText('Menu', 'OPEN', txt);
-            }
+            this.methods.renderSoftKey();
           }, 100);
         }, 0);
       }
@@ -450,19 +453,7 @@ window.addEventListener("load", function() {
       arrowUp: function() {
         this.navigateListNav(-1);
         this.data.currentFocus[this.data.paths.length] = this.verticalNavIndex;
-        var current = this.data.currentFolderContents[this.verticalNavIndex];
-        if (current == null) {
-          this.$router.setSoftKeyText('Menu', '', '');
-        } else if (current.type === 'FILE') {
-          if (current.launcher !== null) {
-            this.$router.setSoftKeyText('Menu', 'Open', 'Option');
-          } else {
-            this.$router.setSoftKeyText('Menu', '', 'Option');
-          }
-        } else if (current.type === 'OBJECT') {
-          var txt = this.data.copyPath !== '' || this.data.cutPath !== '' ? 'Option' : '';
-          this.$router.setSoftKeyText('Menu', 'OPEN', txt);
-        }
+        this.methods.renderSoftKey();
       },
       arrowRight: function() {
         // this.navigateTabNav(-1);
@@ -470,19 +461,7 @@ window.addEventListener("load", function() {
       arrowDown: function() {
         this.navigateListNav(1);
         this.data.currentFocus[this.data.paths.length] = this.verticalNavIndex;
-        var current = this.data.currentFolderContents[this.verticalNavIndex];
-        if (current == null) {
-          this.$router.setSoftKeyText('Menu', '', '');
-        } else if (current.type === 'FILE') {
-          if (current.launcher !== null) {
-            this.$router.setSoftKeyText('Menu', 'Open', 'Option');
-          } else {
-            this.$router.setSoftKeyText('Menu', '', 'Option');
-          }
-        } else if (current.type === 'OBJECT') {
-          var txt = this.data.copyPath !== '' || this.data.cutPath !== '' ? 'Option' : '';
-          this.$router.setSoftKeyText('Menu', 'OPEN', txt);
-        }
+        this.methods.renderSoftKey();
       },
       arrowLeft: function() {
         // this.navigateTabNav(1);
