@@ -23,9 +23,6 @@
     "device-storage:sdcard":{
       "access": "readwrite"
     },
-    "systemXHR": {
-      "description": "Required to load remote content"
-    },
     "desktop-notification": {
       "description": "Required for displaying alerts when app is on background"
     }
