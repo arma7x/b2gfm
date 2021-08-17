@@ -557,9 +557,14 @@ window.addEventListener("load", function() {
       onerror: err => console.error(err),
       onready: ad => {
         ad.call('display')
-        setTimeout(() => {
+        ad.on('close', () => {
+          app.$router.hideBottomSheet();
           document.body.style.position = '';
-        }, 1000);
+        });
+        ad.on('display', () => {
+          app.$router.hideBottomSheet();
+          document.body.style.position = '';
+        });
       }
     })
   }
