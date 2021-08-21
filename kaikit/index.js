@@ -260,6 +260,16 @@ const Kai = (function() {
           this.$router.onInputBlur();
       });
     }
+    for(var i=0;i<DOM.getElementsByTagName('textarea').length;i++) {
+      DOM.getElementsByTagName('textarea')[i].addEventListener('focus', (evt) => {
+        if (this.$router)
+          this.$router.onInputFocus();
+      });
+      DOM.getElementsByTagName('textarea')[i].addEventListener('blur', (evt) => {
+        if (this.$router)
+          this.$router.onInputBlur();
+      });
+    }
     if ((document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') && this.$router) {
       this.$router.onInputFocus();
     }
