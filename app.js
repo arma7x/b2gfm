@@ -42,31 +42,6 @@ window.addEventListener("load", function() {
     'documentTree': {}
   });
 
-  const textViewerPage = function($router, text) {
-    $router.push(
-      new Kai({
-        name: 'textViewerPage',
-        data: {
-          title: 'textViewerPage'
-        },
-        template: '<div style="padding:4px;font-size: 75%;white-space:pre-wrap!important;word-break:break-word!important;"><style>.kui-software-key{height:0px}#__kai_router__{height:266px!important;}.kui-router-m-bottom{margin-bottom:0px!important;}</style>' + DOMPurify.sanitize(snarkdown(text)) + '</div>',
-        mounted: function() {},
-        unmounted: function() {},
-        methods: {},
-        softKeyText: { left: '', center: '', right: '' },
-        softKeyListener: {
-          left: function() {},
-          center: function() {},
-          right: function() {}
-        },
-        dPadNavListener: {
-          arrowRight: function() {},
-          arrowLeft: function() {},
-        }
-      })
-    );
-  }
-
   const mainPage = new Kai({
     name: '_main_',
     data: {
@@ -128,8 +103,16 @@ window.addEventListener("load", function() {
             if (n1) {
               const n2 = n1.type.split('/');
               if (n2[0] === 'text') {
-                icon = "text.png";
-                launcher = 'text';
+                if (n2[1] === 'plain') {
+                  icon = "text.png";
+                  launcher = 'text';
+                } else if (n2[1] === 'html') {
+                  icon = "html.png";
+                  launcher = 'text';
+                } else if (n2[1] === 'markdown') {
+                  icon = "md.png";
+                  launcher = 'text';
+                }
               } else if (n2[0] === 'audio') {
                 icon = "audio.png";
                 launcher = 'audio';
@@ -139,6 +122,15 @@ window.addEventListener("load", function() {
               } else if (n2[0] === 'image') {
                 icon = "image.png";
                 launcher = 'image';
+              } else {
+                const n3 = x.split('.');
+                if (n3.length > 1) {
+                  const ext = n3[n3.length - 1];
+                  if (ext === 'md') {
+                    icon = "md.png";
+                    launcher = 'text';
+                  }
+                }
               }
             }
           }
@@ -166,11 +158,49 @@ window.addEventListener("load", function() {
           } else if (current.type === 'FILE') {
             if (current.launcher === 'text') {
               DS.getFile([...this.data.paths, current.text].join('/'), (_file) => {
-                var reader = new FileReader();
-                reader.onload = (event) => {
-                  textViewerPage(this.$router, event.target.result);
-                };
-                reader.readAsText(_file);
+                if (_file.type === 'text/plain') {
+                  const _url = URL.createObjectURL(_file);
+                  const KAIOS_BROWSER = window.open(_url);
+                  setInterval(() => {
+                    if (KAIOS_BROWSER.closed) {
+                      URL.revokeObjectURL(_url);
+                    }
+                  }, 1000);
+                } else if (_file.type === 'text/html') {
+                  var reader = new FileReader();
+                  reader.onload = (event) => {
+                    const HTML = DOMPurify.sanitize(event.target.result, {WHOLE_DOCUMENT: true});
+                    const _temp = new Blob([HTML], {type : 'text/html'});
+                    const _url = URL.createObjectURL(_temp);
+                    const KAIOS_BROWSER = window.open(_url);
+                    setInterval(() => {
+                      if (KAIOS_BROWSER.closed) {
+                        URL.revokeObjectURL(_url);
+                      }
+                    }, 1000);
+                  };
+                  reader.readAsText(_file);
+                } else {
+                  const n = current.text.split('.');
+                  if (n.length > 1) {
+                    const ext = n[n.length - 1];
+                    if (ext === 'md') {
+                      var reader = new FileReader();
+                      reader.onload = (event) => {
+                        const HTML = `<!DOCTYPE html><html><head><title>${current.text}</title></head><body>${DOMPurify.sanitize(snarkdown(event.target.result))}</body></html>`;
+                        const _temp = new Blob([HTML], {type : 'text/html'});
+                        const _url = URL.createObjectURL(_temp);
+                        const KAIOS_BROWSER = window.open(_url);
+                        setInterval(() => {
+                          if (KAIOS_BROWSER.closed) {
+                            URL.revokeObjectURL(_url);
+                          }
+                        }, 1000);
+                      };
+                      reader.readAsText(_file);
+                    }
+                  }
+                }
               }, (e) => {})
             } else if (current.launcher === 'audio' || current.launcher === 'video' || current.launcher === 'image') {
               var type = {

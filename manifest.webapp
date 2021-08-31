@@ -1,5 +1,5 @@
 {
-  "version": "1.4.0",
+  "version": "1.5.0",
   "name": "Kloud File Manager",
   "description": "File Manager for for KaiOS",
   "launch_path": "/index.html",
@@ -15,7 +15,7 @@
   },
   "developer": {
     "name": "arma7x",
-    "url": "https://github.com/arma7x"
+    "url": "https://www.kaiostech.com"
   },
   "origin": "app://kfm.arma7x.com",
   "type": "privileged",

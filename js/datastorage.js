@@ -55,11 +55,11 @@ const DataStorage = (function() {
 
   const SDCARD = navigator.getDeviceStorage('sdcard');
 
-  function DataStorage(onChange, onReady) {
-    this.init(onChange, onReady);
+  function DataStorage(onChange, onReady, indexing = true) {
+    this.init(onChange, onReady, indexing);
   }
 
-  DataStorage.prototype.init = function(onChange = () => {}, onReady = () => {}) {
+  DataStorage.prototype.init = function(onChange = () => {}, onReady = () => {}, indexing = true) {
     this.trailingSlash = '';
     this.isReady = false;
     this.onChange = onChange;
@@ -68,7 +68,9 @@ const DataStorage = (function() {
     this.fileAttributeRegistry = {};
     this.documentTree = {};
     this.groups = {};
-    this.indexingStorage();
+    if (indexing) {
+      this.indexingStorage();
+    }
     this._internalChangeListener = (event) => {
       this.indexingStorage();
     }
@@ -114,7 +116,9 @@ const DataStorage = (function() {
   }
 
   DataStorage.prototype.getFile = function(name, success, error, getEditable) {
-    getFile(this.trailingSlash + name, success, error, getEditable);
+    if (name[0] != this.trailingSlash)
+      name = this.trailingSlash + name
+    getFile(name, success, error, getEditable);
   }
 
   DataStorage.prototype.addFile = function(path, name, blob) {
@@ -224,11 +228,11 @@ const DataStorage = (function() {
       if (request == null) {
         fail("Unable to create folder on root path");
       } else {
-        const req = request.addNamed(file, des);
-        req.onsuccess = function(res) {
+        request.addNamed(file, des);
+        request.onsuccess = function(res) {
           success(res);
         }
-        req.onerror = function(err) {
+        request.onerror = function(err) {
           fail(err);
         }
       }

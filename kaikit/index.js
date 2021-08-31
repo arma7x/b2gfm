@@ -499,9 +499,14 @@ const Kai = (function() {
       nav[currentIndex].classList.remove('focus');
     }
     if (navClass === 'horizontalNavClass') {
+      if (!isElementInViewport(targetElement, 0, 0)) {
+        return targetElement.parentElement.scrollLeft = targetElement.offsetLeft;
+      }
       return targetElement.parentElement.scrollLeft = targetElement.offsetLeft - targetElement.offsetWidth;
     } else if (navClass === 'verticalNavClass') {
-      const parent = window.getComputedStyle(document.getElementById(this.id));
+      const container = document.getElementById(this.id);
+      const parent = window.getComputedStyle(container);
+      const marginBottom = window.innerHeight - container.offsetTop - container.offsetHeight;
       if (targetElement.offsetTop > targetElement.parentElement.clientHeight) {
         if ((targetElement.tagName === 'INPUT' || targetElement.tagName === 'TEXTAREA')) {
           const LI = getParent(targetElement);
@@ -511,8 +516,13 @@ const Kai = (function() {
             pad = fill;
             return LI.parentElement.scrollTop = pad;
           }
+        } else if (!isElementInViewport(targetElement, parseFloat(container.offsetTop), parseFloat(marginBottom))) {
+          var fill = parseFloat(targetElement.parentElement.clientHeight) - ((parseFloat(targetElement.offsetTop) - parseFloat(container.offsetTop)) + parseFloat(targetElement.offsetHeight));
+          fill = fill < 0 ? -(fill) : fill;
+          pad = fill;
+          return targetElement.parentElement.scrollTop = pad;
         }
-        return targetElement.parentElement.scrollTop
+        return targetElement.parentElement.scrollTop;
       } else {
         var pad = 0;
         if ((targetElement.tagName === 'INPUT' || targetElement.tagName === 'TEXTAREA')) {
