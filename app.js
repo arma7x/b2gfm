@@ -161,8 +161,9 @@ window.addEventListener("load", function() {
                 if (_file.type === 'text/plain') {
                   const _url = URL.createObjectURL(_file);
                   const KAIOS_BROWSER = window.open(_url);
-                  setInterval(() => {
+                  var TIMER = setInterval(() => {
                     if (KAIOS_BROWSER.closed) {
+                      clearInterval(TIMER);
                       URL.revokeObjectURL(_url);
                     }
                   }, 1000);
@@ -173,8 +174,9 @@ window.addEventListener("load", function() {
                     const _temp = new Blob([HTML], {type : 'text/html'});
                     const _url = URL.createObjectURL(_temp);
                     const KAIOS_BROWSER = window.open(_url);
-                    setInterval(() => {
+                    var TIMER = setInterval(() => {
                       if (KAIOS_BROWSER.closed) {
+                        clearInterval(TIMER);
                         URL.revokeObjectURL(_url);
                       }
                     }, 1000);
@@ -191,8 +193,9 @@ window.addEventListener("load", function() {
                         const _temp = new Blob([HTML], {type : 'text/html'});
                         const _url = URL.createObjectURL(_temp);
                         const KAIOS_BROWSER = window.open(_url);
-                        setInterval(() => {
+                        var TIMER = setInterval(() => {
                           if (KAIOS_BROWSER.closed) {
+                            clearInterval(TIMER);
                             URL.revokeObjectURL(_url);
                           }
                         }, 1000);
