@@ -23,7 +23,7 @@ const KaiState = (function() {
 
   KaiState.prototype.addState = function(name, data) {
     const dataType = typeof data;
-    if (this.state[name] != undefined) {
+    if (this.state[name] != null) {
       return this.setState(name, data);
     }
     this.state[name] = this.immutability(data);
@@ -61,7 +61,7 @@ const KaiState = (function() {
     if (typeof cb !== 'function') {
       return false;
     }
-    if (this.listener[name] == undefined) {
+    if (this.listener[name] == null) {
       return false;
     }
     const index = this.listener[name].indexOf(cb);
@@ -73,7 +73,7 @@ const KaiState = (function() {
   }
 
   KaiState.prototype.setState = function(name, data) {
-    if (this.state[name] != undefined) {
+    if (this.state[name] != null) {
       this.state[name] = this.immutability(data);
       this.listener[name].forEach((listener) => {
         listener(this.state[name]);
@@ -88,7 +88,7 @@ const KaiState = (function() {
   }
 
   KaiState.prototype.getState = function(name) {
-    if (name != undefined) {
+    if (name != null) {
       return this.immutability(this.state[name]);
     }
     return this.immutability(this.state);

@@ -260,7 +260,17 @@ const Kai = (function() {
           this.$router.onInputBlur();
       });
     }
-    if ((document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') && this.$router) {
+    for(var i=0;i<DOM.getElementsByTagName('textarea').length;i++) {
+      DOM.getElementsByTagName('textarea')[i].addEventListener('focus', (evt) => {
+        if (this.$router)
+          this.$router.onInputFocus();
+      });
+      DOM.getElementsByTagName('textarea')[i].addEventListener('blur', (evt) => {
+        if (this.$router)
+          this.$router.onInputBlur();
+      });
+    }
+    if ((['INPUT', 'TEXTAREA'].indexOf(document.activeElement.tagName) > -1) && this.$router) {
       this.$router.onInputFocus();
     }
   }
@@ -300,7 +310,7 @@ const Kai = (function() {
     switch(evt.key) {
       case 'Backspace':
       case 'EndCall':
-        if ((document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')) {
+        if (['INPUT', 'TEXTAREA'].indexOf(document.activeElement.tagName) > -1) {
           if (document.activeElement.value.length === 0) {
             document.activeElement.blur();
           }
@@ -318,7 +328,7 @@ const Kai = (function() {
         }
         break
       case 'SoftLeft':
-        if ((document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')) {
+        if (['INPUT', 'TEXTAREA'].indexOf(document.activeElement.tagName) > -1) {
           if (typeof this.softKeyInputFocusListener.left === 'function') {
             this.softKeyInputFocusListener.left();
           }
@@ -329,7 +339,7 @@ const Kai = (function() {
         }
         break
       case 'SoftRight':
-        if ((document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')) {
+        if (['INPUT', 'TEXTAREA'].indexOf(document.activeElement.tagName) > -1) {
           if (typeof this.softKeyInputFocusListener.right === 'function') {
             this.softKeyInputFocusListener.right();
           }
@@ -340,7 +350,7 @@ const Kai = (function() {
         }
         break
       case 'Enter':
-        if ((document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')) {
+        if (['INPUT', 'TEXTAREA'].indexOf(document.activeElement.tagName) > -1) {
           if (typeof this.softKeyInputFocusListener.center === 'function') {
             this.softKeyInputFocusListener.center();
           }
@@ -351,7 +361,7 @@ const Kai = (function() {
         }
         break
       case 'ArrowUp':
-        if ((document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')) {
+        if (['INPUT', 'TEXTAREA'].indexOf(document.activeElement.tagName) > -1) {
           document.activeElement.blur();
         }
         if (typeof this.dPadNavListener.arrowUp === 'function') {
@@ -359,7 +369,7 @@ const Kai = (function() {
         }
         break
       case 'ArrowRight':
-        if ((document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')) {
+        if (['INPUT', 'TEXTAREA'].indexOf(document.activeElement.tagName) > -1) {
           return;
         }
         if (typeof this.dPadNavListener.arrowRight === 'function') {
@@ -367,7 +377,7 @@ const Kai = (function() {
         }
         break
       case 'ArrowDown':
-        if ((document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')) {
+        if (['INPUT', 'TEXTAREA'].indexOf(document.activeElement.tagName) > -1) {
           document.activeElement.blur();
         }
         if (typeof this.dPadNavListener.arrowDown === 'function') {
@@ -375,7 +385,7 @@ const Kai = (function() {
         }
         break
       case 'ArrowLeft':
-        if ((document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')) {
+        if (['INPUT', 'TEXTAREA'].indexOf(document.activeElement.tagName) > -1) {
           return;
         }
         if (typeof this.dPadNavListener.arrowLeft === 'function') {

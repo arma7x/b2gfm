@@ -1,6 +1,7 @@
 const DataStorage = (function() {
 
-  const SDCARDS = navigator.getDeviceStorages('sdcard');
+  const SDCARDS = navigator.b2g ? navigator.b2g.getDeviceStorages('sdcard') : navigator.getDeviceStorages('sdcard');
+  const SDCARD = navigator.b2g ? navigator.b2g.getDeviceStorage('sdcard') : navigator.getDeviceStorage('sdcard');
 
   function getStorageNameByPath(path) {
     var split = path.split('/')
@@ -23,27 +24,51 @@ const DataStorage = (function() {
   }
 
   function enumerate(cards, index, files, cb) {
-    const cursor = cards[index].enumerate('');
-    cursor.onsuccess = function () {
-      if (!this.done) {
-        if(cursor.result.name !== null) {
-          files.push(cursor.result);
-          this.continue();
+    if (navigator.b2g) {
+      var iterable = cards[index].enumerate();
+      var iterFiles = iterable.values();
+      function next(_files) {
+        _files.next()
+        .then((file) => {
+          if (file.done) {
+            if (cards.length === (index + 1)) {
+              cb(files);
+            } else {
+              enumerate(cards, (index + 1), files, cb);
+            }
+          } else {
+            files.push(file.value);
+            next(_files);
+          }
+        })
+        .catch(() => {
+          next(_files);
+        });
+      }
+      next(iterFiles);
+    } else {
+      const cursor = cards[index].enumerate('');
+      cursor.onsuccess = function () {
+        if (!this.done) {
+          if(cursor.result.name !== null) {
+            files.push(cursor.result);
+            this.continue();
+          }
+        } else {
+          if (cards.length === (index + 1)) {
+            cb(files);
+          } else {
+            enumerate(SDCARDS, (index + 1), files, cb);
+          }
         }
-      } else {
+      }
+      cursor.onerror = (err) => {
+        console.warn(`No file found: ${err.toString()}`);
         if (cards.length === (index + 1)) {
           cb(files);
         } else {
           enumerate(SDCARDS, (index + 1), files, cb);
         }
-      }
-    }
-    cursor.onerror = (err) => {
-      console.warn(`No file found: ${err.toString()}`);
-      if (cards.length === (index + 1)) {
-        cb(files);
-      } else {
-        enumerate(SDCARDS, (index + 1), files, cb);
       }
     }
   }
@@ -52,8 +77,6 @@ const DataStorage = (function() {
     var files = [];
     enumerate(SDCARDS, 0, files, cb);
   }
-
-  const SDCARD = navigator.getDeviceStorage('sdcard');
 
   function DataStorage(onChange, onReady, indexing = true) {
     this.init(onChange, onReady, indexing);
@@ -176,12 +199,12 @@ const DataStorage = (function() {
     });
   }
 
-  DataStorage.prototype.deleteFile = function(path, name) {
+  DataStorage.prototype.deleteFile = function(path, name, scan = false) {
     var _this = this;
     return new Promise((success, fail) => {
       path.push(name)
       var dir = JSON.parse(JSON.stringify(_this.documentTree));
-      var valid = false;
+      var valid = scan;
       for (var i in path) {
         if (typeof dir[path[i]] === 'string') {
           valid = true;
