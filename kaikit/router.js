@@ -499,10 +499,10 @@ const KaiRouter = (function() {
     }
   }
 
-  KaiRouter.prototype.backKey = function() {
+  KaiRouter.prototype.backKey = function(evt) {
     if (this.stack[this.stack.length - 1]) {
       if (typeof this.stack[this.stack.length - 1].backKeyListener === 'function') {
-        return this.stack[this.stack.length - 1].backKeyListener();
+        return this.stack[this.stack.length - 1].backKeyListener(evt);
       }
     }
   }
@@ -527,7 +527,10 @@ const KaiRouter = (function() {
           return;
         }
         if (_router) {
-          const isStop = _router.backKey();
+          const isStop = _router.backKey(e);
+          if (isStop === -1) {
+            return;
+          }
           if (isStop === true) {
             e.preventDefault();
             e.stopPropagation();

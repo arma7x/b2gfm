@@ -78,12 +78,123 @@ const DataStorage = (function() {
     enumerate(SDCARDS, 0, files, cb);
   }
 
+  function getFile(name, success, error, getEditable) {
+    return new Promise((resolve, reject) => {
+      var request;
+      if (getEditable === true) {
+        request = getSDCard(getStorageNameByPath(name)).getEditable(name);
+      } else {
+        request = getSDCard(getStorageNameByPath(name)).get(name);
+      }
+      request.onsuccess = function () {
+        resolve(this.result);
+        if (success !== undefined) {
+          success(this.result);
+        }
+      }
+      request.onerror = function () {
+        reject(this.error);
+        if (error !== undefined) {
+          error(this.error);
+        }
+      }
+    });
+  }
+
+  function removeNode(target, path, steps = []) {
+    var dir = path.splice(0, 1);
+    dir = dir[0];
+    if (target[dir] == null) {
+      return false;
+    }
+    if (path.length === 0 && Object.keys(target[dir]).length === 0) {
+      delete target[dir];
+      return steps;
+    }
+    steps.push(dir);
+    return removeNode(target[dir], path, steps);
+  }
+
+  function removeChild(target, path, steps = []) {
+    var dir = path.splice(0, 1);
+    dir = dir[0];
+    if (target[dir] == null) {
+      return false;
+    }
+    if (typeof target[dir] !== 'object') {
+      delete target[dir];
+      return steps;
+    }
+    steps.push(dir);
+    return removeChild(target[dir], path, steps);
+  }
+
+  function insertChild(path, tree, parent, root) {
+    if (path.length === 1) {
+      tree[parent] = root;
+      return tree;
+    } else {
+      if (tree[parent] === undefined) {
+        tree[parent] = {};
+      }
+      tree[parent] = insertChild(path.slice(1, path.length), tree[parent], path.slice(1, path.length)[0], root);
+      return tree;
+    }
+  }
+
+  function indexingDocuments(files, _this) {
+    var docTree = {}
+    files.forEach(function(element) {
+      if (element[0] === '/') {
+        element = element.replace('/', '');
+        _this.trailingSlash = '/';
+      }
+      docTree = insertChild(element.split('/'), docTree, element.split('/')[0], element);
+    })
+    return docTree;
+  }
+
+  function groupByType(files, cb = ()=>{}) {
+    var _taskLength = files.length;
+    var _taskFinish = 0;
+    var _groups = {};
+    files.forEach(function(element) {
+      getFile(element, function(file) {
+        var type = 'unknown'
+        if (file.type === '') {
+          var mime = file.name.split('.');
+          if (mime.length > 1 && mime[mime.length - 1] !== '') {
+            type = mime[mime.length - 1]
+          }
+          if (_groups[type] == undefined) {
+            _groups[type] = []
+          }
+        } else {
+          var mime = file.type.split('/');
+          type = mime[0]
+          if (_groups[type] == undefined) {
+            _groups[type] = []
+          }
+        }
+        _groups[type].push(file.name);
+        _taskFinish++;
+        if (_taskFinish === _taskLength) {
+          cb(_groups);
+        }
+      });
+    })
+    return _groups;
+  }
+
   function DataStorage(onChange, onReady, indexing = true) {
     this.init(onChange, onReady, indexing);
   }
 
   DataStorage.prototype.init = function(onChange = () => {}, onReady = () => {}, indexing = true) {
-    this.trailingSlash = '';
+    this.indexing = indexing;
+    this.deviceStorage = SDCARD;
+    this.deviceStorages = SDCARDS;
+    this.trailingSlash = SDCARD.storageName != '' ? '/' : '';
     this.isReady = false;
     this.onChange = onChange;
     this.onReady = onReady;
@@ -91,24 +202,98 @@ const DataStorage = (function() {
     this.fileAttributeRegistry = {};
     this.documentTree = {};
     this.groups = {};
-    if (indexing) {
-      this.indexingStorage();
-    }
-    this._internalChangeListener = (event) => {
-      this.indexingStorage();
+    this.indexingStorage();
+    this.onChangeListener = (event) => {
+      // console.log(event.type, event.reason, event.path);
+      if (!this.indexing)
+        return;
+      var fp = event.path;
+      if (event.type === 'change' && event.reason === 'created') {
+        this.onReady(false);
+        getFile(fp)
+        .then((file) => {
+          if (file != null) {
+            this.fileAttributeRegistry[file.name] = { type: file.type, size: file.size, lastModified: file.lastModified };
+            this.fileRegistry.push(file.name);
+            var filePath = file.name;
+            if (filePath[0] === '/')
+              filePath = filePath.replace('/', '');
+            this.documentTree = insertChild(filePath.split('/'), this.documentTree, filePath.split('/')[0], filePath);
+            if (file.type === '') {
+              if (this.groups['unknown'] == null) {
+                this.groups['unknown'] = [];
+              }
+              this.groups['unknown'].push(file.name);
+            } else {
+              const t = file.type.split('/')[0];
+              if (this.groups[t] == null) {
+                this.groups[t] = [];
+              }
+              this.groups[t].push(file.name);
+            }
+            this.onChange(this.fileRegistry, this.documentTree, this.groups);
+            this.onReady(true);
+          } else {
+            this.onReady(true);
+          }
+        })
+        .catch((err) => {
+          this.onReady(true);
+        });
+      } else if (event.type === 'change' && event.reason === 'modified') {
+        this.onReady(false);
+        getFile(fp)
+        .then((file) => {
+          if (file != null) {
+            this.fileAttributeRegistry[file.name] = { type: file.type, size: file.size, lastModified: file.lastModified };
+            this.onChange(this.fileRegistry, this.documentTree, this.groups);
+            this.onReady(true);
+          } else {
+            this.onReady(true);
+          }
+        })
+        .catch((err) => {
+          this.onReady(true);
+        });
+      } else if (event.type === 'change' && event.reason === 'deleted') {
+        this.onReady(false);
+        const attrb = this.fileAttributeRegistry[fp];
+        delete this.fileAttributeRegistry[fp];
+        this.fileRegistry.splice(this.fileRegistry.indexOf(fp), 1);
+        if (fp[0] === '/') {
+          fp = fp.substring(1, fp.length);
+        }
+        var path = removeChild(this.documentTree, fp.split('/'));
+        if (path !== false) {
+          path = removeNode(this.documentTree, path);
+          while (path !== false) {
+            path = removeNode(this.documentTree, path);
+          }
+        }
+        if (attrb.type === '') {
+          this.groups['unknown'].splice(this.groups['unknown'].indexOf(fp), 1);
+        } else {
+          const t = attrb.type.split('/')[0];
+          this.groups[t].splice(this.groups[t].indexOf(fp), 1);
+        }
+        this.onChange(this.fileRegistry, this.documentTree, this.groups);
+        this.onReady(true);
+      }
     }
     SDCARDS.forEach((c) => {
-      c.addEventListener("change", this._internalChangeListener);
+      c.addEventListener("change", this.onChangeListener);
     });
   }
 
   DataStorage.prototype.destroy = function() {
     SDCARDS.forEach((c) => {
-      c.removeEventListener("change", this._internalChangeListener);
+      c.removeEventListener("change", this.onChangeListener);
     });
   }
 
   DataStorage.prototype.indexingStorage = function() {
+    if (!this.indexing)
+      return;
     var _this = this;
     var files = [];
     _this.isReady = false;
@@ -141,7 +326,7 @@ const DataStorage = (function() {
   DataStorage.prototype.getFile = function(name, success, error, getEditable) {
     if (name[0] != this.trailingSlash)
       name = this.trailingSlash + name
-    getFile(name, success, error, getEditable);
+    return getFile(name, success, error, getEditable);
   }
 
   DataStorage.prototype.addFile = function(path, name, blob) {
@@ -199,12 +384,12 @@ const DataStorage = (function() {
     });
   }
 
-  DataStorage.prototype.deleteFile = function(path, name, scan = false) {
+  DataStorage.prototype.deleteFile = function(path, name, force = false) {
     var _this = this;
     return new Promise((success, fail) => {
       path.push(name)
       var dir = JSON.parse(JSON.stringify(_this.documentTree));
-      var valid = scan;
+      var valid = force;
       for (var i in path) {
         if (typeof dir[path[i]] === 'string') {
           valid = true;
@@ -395,83 +580,6 @@ const DataStorage = (function() {
         }
       }
     });
-  }
-
-  function getFile(name, success, error, getEditable) {
-    var request;
-    if (getEditable === true) {
-      request = getSDCard(getStorageNameByPath(name)).getEditable(name);
-    } else {
-      request = getSDCard(getStorageNameByPath(name)).get(name);
-    }
-    request.onsuccess = function () {
-      if (success !== undefined) {
-        success(this.result);
-      }
-    }
-    request.onerror = function () {
-      if (error !== undefined) {
-        error(this.error);
-      }
-    }
-  }
-
-  function getChild(segments, tree, parent, root) {
-    if (segments.length === 1) {
-      tree[parent] = root
-      return tree;
-    } else {
-      if (tree[parent] === undefined) {
-        tree[parent] = {}
-      }
-      tree[parent] = getChild(segments.slice(1, segments.length), tree[parent], segments.slice(1, segments.length)[0], root)
-      return tree;
-    }
-  }
-
-  function indexingDocuments(files, _this) {
-    var docTree = {}
-    files.forEach(function(element) {
-      if (element[0] === '/') {
-        element = element.replace('/', '');
-        _this.trailingSlash = '/';
-      }
-      var folder = element.split('/')[0] === '' ? 'root' : element.split('/')[0];
-      docTree = getChild(element.split('/'), docTree, folder, element);
-    })
-    return docTree;
-  }
-
-  function groupByType(files, cb = ()=>{}) {
-    var _taskLength = files.length;
-    var _taskFinish = 0;
-    var _groups = {};
-    files.forEach(function(element) {
-      getFile(element, function(file) {
-        var type = 'unknown'
-        if (file.type === '') {
-          var mime = file.name.split('.');
-          if (mime.length > 1 && mime[mime.length - 1] !== '') {
-            type = mime[mime.length - 1]
-          }
-          if (_groups[type] == undefined) {
-            _groups[type] = []
-          }
-        } else {
-          var mime = file.type.split('/');
-          type = mime[0]
-          if (_groups[type] == undefined) {
-            _groups[type] = []
-          }
-        }
-        _groups[type].push(file.name);
-        _taskFinish++;
-        if (_taskFinish === _taskLength) {
-          cb(_groups);
-        }
-      });
-    })
-    return _groups;
   }
 
   DataStorage.prototype.__getFile__ = getFile;
