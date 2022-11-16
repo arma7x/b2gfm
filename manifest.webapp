@@ -1,6 +1,6 @@
 {
   "version": "1.5.4",
-  "name": "File Manager",
+  "name": "Kloud File Manager",
   "description": "A File Manager for KaiOS",
   "launch_path": "/index.html",
   "theme": "#873eff",
