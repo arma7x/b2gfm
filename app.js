@@ -83,7 +83,12 @@ window.addEventListener("load", function() {
         var documentTree = this.$state.getState('documentTree')
         if (this.data.paths.length > 0) {
           for (var x in this.data.paths) {
-            documentTree = documentTree[this.data.paths[x]]
+            if (documentTree[this.data.paths[x]])
+              documentTree = documentTree[this.data.paths[x]]
+            else {
+              documentTree = {};
+              break;
+            }
           }
         }
         this.$router.setHeaderTitle('File Manager(' + this.data.paths.length.toString() + ')');

@@ -1,7 +1,7 @@
 {
-  "version": "1.5.3",
-  "name": "Kloud File Manager",
-  "description": "File Manager for for KaiOS",
+  "version": "1.5.4",
+  "name": "File Manager",
+  "description": "A File Manager for KaiOS",
   "launch_path": "/index.html",
   "theme": "#873eff",
   "theme_color": "#873eff",
@@ -34,9 +34,9 @@
   ],
   "locales": {
     "en-US": {
-      "name": "K File Manager",
+      "name": "File Manager",
       "subtitle": "File Manager for for KaiOS",
-      "description": "File Manager for for KaiOS"
+      "description": "File Manager for KaiOS"
     }
   },
   "default_locale": "en-US"
